@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* CONFIGURATION */
+@theme {
+  --color-whitecolor: var(--color-whitecolor);
+  --color-blackcolor: var(--color-blackcolor);
+  --font-sans: var(--font-inter), "Inter", sans-serif;
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-tertiary: var(--color-tertiary);
+  --color-background: var(--color-background);
+}
+
+/* DARK MODE SETUP */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* COLOR PALETTE */
+:root {
+  --color-blackcolor: #171717;
+  --color-whitecolor: #f8fafc;
+  --color-primary: #0c36fa;
+  --color-secondary: #ededed;
+  --color-tertiary: #171717;
+  --color-background: #f8f9fa;
+}
+
+.dark {
+  --color-blackcolor: #171717;
+  --color-whitecolor: #f8fafc;
+  --color-primary: #3374c3;
+  --color-secondary: #252d36;
+  --color-tertiary: #f8f9fa;
+  --color-background: #1b202a;
+}
+
+/* GLOBAL RESETS */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-blackcolor);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Auto-switch text color in dark mode */
+.dark body {
+  color: var(--color-whitecolor);
+}
