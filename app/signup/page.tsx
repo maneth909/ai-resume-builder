@@ -27,8 +27,7 @@ export default function SignupPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      // Note: If you have email verification on, you might want to show a
-      // "Check your email" message here instead of redirecting.
+      // On successful signup, redirect to dashboard
       router.push("/dashboard");
       router.refresh();
     }

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import Button from "@/components/Button"; // Reusing your button!
-import Link from "next/link"; // For the "Sign up" link
+import Button from "@/components/Button";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
