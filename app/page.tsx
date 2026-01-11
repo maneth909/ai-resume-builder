@@ -1,4 +1,3 @@
-// app/page.tsx
 import Button from "../components/Button";
 import ThemeToggle from "../components/ThemeToggle";
 

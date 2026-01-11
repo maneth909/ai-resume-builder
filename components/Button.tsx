@@ -1,4 +1,6 @@
 // components/Button.tsx
+"use client";
+
 import React from "react";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -6,6 +8,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "outline";
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
+  onClick?: () => void;
 }
 
 export default function Button({
@@ -15,6 +18,7 @@ export default function Button({
   isLoading = false,
   className = "",
   disabled,
+  onClick,
   ...props
 }: ButtonProps) {
   const baseStyles =
@@ -46,6 +50,7 @@ export default function Button({
   return (
     <button
       disabled={disabled || isLoading}
+      onClick={onClick}
       className={classes.trim()}
       {...props}
     >
