@@ -44,3 +44,9 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/dashboard/:path*"],
 };
+
+// User arrives.
+// Middleware creates a client and reads their cookies.
+// Middleware checks Supabase to see if the user is real.
+// Middleware checks the URL: Are they trying to go somewhere private?
+// Decision: If they are unauthorized, redirect to Login. Otherwise, let them in.
