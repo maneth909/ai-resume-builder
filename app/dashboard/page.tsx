@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import LogoutButton from "@/components/LogoutButton";
+import CreateResumeButton from "@/components/CreateResumeButton";
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -12,10 +13,17 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Logged in as: {user.email}</p>
-      <LogoutButton />
+    <div className="p-10 space-y-6">
+      <h1 className="text-3xl font-bold">My Resumes</h1>
+
+      {/* This is your new button */}
+      <CreateResumeButton />
+
+      <div className="mt-8">
+        <p className="text-gray-500">
+          Your existing resumes will appear here later.
+        </p>
+      </div>
     </div>
   );
 }
