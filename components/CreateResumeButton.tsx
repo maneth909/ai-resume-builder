@@ -30,7 +30,7 @@ export default function CreateResumeButton() {
     <div className="flex gap-2 items-center p-4 border rounded-lg bg-gray-50 max-w-md">
       <input
         type="text"
-        placeholder="Resume Name (e.g. My Tech Resume)"
+        placeholder="Resume Name"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         className="border p-2 rounded flex-1"

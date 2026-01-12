@@ -1,7 +1,7 @@
 "use client";
 
 import { PersonalInfo } from "@/types/resume";
-import { updatePersonalInfo } from "@/actions/resume";
+import { updatePersonalInfo } from "@/actions/sections";
 import { useState } from "react";
 
 interface Props {
