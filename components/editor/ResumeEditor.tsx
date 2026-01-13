@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Resume } from "@/types/resume";
 import PersonalInfoForm from "@/components/form/PersonalInfoForm";
 import ResumePreview from "@/components/ResumePreview";
@@ -14,9 +15,15 @@ import {
   FileBadge,
   Users,
   Tent,
+  ArrowLeft,
+  Share2,
+  Download,
+  Sparkles,
+  X,
+  Bot,
 } from "lucide-react";
 
-// define the sections
+// --- SECTIONS CONFIG ---
 type SectionKey =
   | "personal_info"
   | "work_experience"
@@ -28,29 +35,24 @@ type SectionKey =
   | "extra_curricular"
   | "resume_references";
 
-// configuration for the Sidebar
 const SECTIONS = [
-  { key: "personal_info", label: "Personal Info", icon: <User size={18} /> },
+  { key: "personal_info", label: "Personal Info", icon: <User size={20} /> },
   {
     key: "work_experience",
     label: "Experience",
-    icon: <Briefcase size={18} />,
+    icon: <Briefcase size={20} />,
   },
-  { key: "education", label: "Education", icon: <GraduationCap size={18} /> },
-  { key: "skills", label: "Skills", icon: <Wrench size={18} /> },
-  { key: "languages", label: "Languages", icon: <Globe size={18} /> },
+  { key: "education", label: "Education", icon: <GraduationCap size={20} /> },
+  { key: "skills", label: "Skills", icon: <Wrench size={20} /> },
+  { key: "languages", label: "Languages", icon: <Globe size={20} /> },
   {
     key: "certifications",
     label: "Certifications",
-    icon: <FileBadge size={18} />,
+    icon: <FileBadge size={20} />,
   },
-  { key: "honors_awards", label: "Honors & Awards", icon: <Award size={18} /> },
-  {
-    key: "extra_curricular",
-    label: "Extracurriculars",
-    icon: <Tent size={18} />,
-  },
-  { key: "resume_references", label: "References", icon: <Users size={18} /> },
+  { key: "honors_awards", label: "Honors", icon: <Award size={20} /> },
+  { key: "extra_curricular", label: "Activities", icon: <Tent size={20} /> },
+  { key: "resume_references", label: "References", icon: <Users size={20} /> },
 ];
 
 interface ResumeEditorProps {
@@ -60,88 +62,199 @@ interface ResumeEditorProps {
 export default function ResumeEditor({ resume }: ResumeEditorProps) {
   const [activeSection, setActiveSection] =
     useState<SectionKey>("personal_info");
+  const [isAIOpen, setIsAIOpen] = useState(false);
 
   return (
-    <div className="flex h-[calc(100vh-64px)]">
-      <div className="w-64 bg-whitecolor dark:bg-secondary border-r border-border flex flex-col overflow-y-auto transition-colors">
-        <div className="p-4 space-y-1">
-          <p className="px-4 py-2 text-xs font-semibold text-muted uppercase tracking-wider">
-            Sections
-          </p>
+    <div className="flex flex-col h-screen bg-whitecolor dark:bg-background text-tertiary transition-colors overflow-hidden">
+      {/* ---------------- app bar ---------------- */}
+      <header className="h-16 border-b border-border flex items-center justify-between px-4 bg-whitecolor dark:bg-background shrink-0 z-20 transition-all">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/dashboard"
+            className="p-2 hover:bg-secondary rounded-full text-muted hover:text-tertiary transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </Link>
+          <div>
+            <h1 className="font-semibold text-tertiary truncate max-w-50">
+              {resume.title}
+            </h1>
+            <p className="text-xs text-muted">Last saved just now</p>
+          </div>
+        </div>
 
-          {SECTIONS.map((section) => (
-            <button
-              key={section.key}
-              onClick={() => setActiveSection(section.key as SectionKey)}
-              className={`flex items-center gap-3 px-4 py-3 w-full text-left text-sm font-medium rounded-md transition-all ${
-                activeSection === section.key
-                  ? "bg-primary/10 text-primary ring-1 ring-primary/20"
-                  : "text-muted hover:bg-secondary hover:text-tertiary"
+        <div className="flex items-center gap-2">
+          <button className="px-3 py-2 text-sm font-medium text-tertiary bg-transparent border border-border rounded-md hover:bg-secondary flex items-center gap-2 transition-colors">
+            <Share2 size={16} />
+            <span className="hidden sm:inline">Share</span>
+          </button>
+          <button className="px-3 py-2 text-sm font-medium text-whitecolor dark:text-background bg-tertiary rounded-md hover:opacity-90 flex items-center gap-2 transition-opacity">
+            <Download size={16} />
+            <span className="hidden sm:inline">Download</span>
+          </button>
+
+          <div className="w-px h-8 bg-border mx-1" />
+
+          {/* ai toggle button*/}
+          <button
+            onClick={() => setIsAIOpen(!isAIOpen)}
+            className={`p-2 rounded-md border transition-all ${
+              isAIOpen
+                ? "bg-primary text-whitecolor border-primary"
+                : "bg-transparent text-primary border-primary hover:bg-primary/10"
+            }`}
+            title="AI Analysis"
+          >
+            <Sparkles size={18} />
+          </button>
+        </div>
+      </header>
+
+      {/* ---------------- main layout ---------------- */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* column1: sidebar navigation */}
+        <div
+          className={`bg-whitecolor dark:bg-secondary border-r border-border flex flex-col overflow-y-auto shrink-0 transition-[width] duration-300 ease-in-out ${
+            isAIOpen ? "w-20 items-center" : "w-48"
+          }`}
+        >
+          <div className="p-4 space-y-1 w-full">
+            <p
+              className={`px-4 py-2 text-xs font-semibold text-muted uppercase tracking-wider transition-opacity duration-200 ${
+                isAIOpen ? "opacity-0 h-0 p-0 overflow-hidden" : "opacity-100"
               }`}
             >
-              {section.icon}
-              {section.label}
-            </button>
-          ))}
-        </div>
-      </div>
+              Sections
+            </p>
 
-      <div className="w-[450px] bg-whitecolor dark:bg-secondary border-r border-border overflow-y-auto p-6 scrollbar-hide transition-colors">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-tertiary">
-            {SECTIONS.find((s) => s.key === activeSection)?.label}
-          </h2>
-          <p className="text-sm text-muted">Add details to your resume.</p>
-        </div>
+            {SECTIONS.map((section) => {
+              const isActive = activeSection === section.key;
+              return (
+                <button
+                  key={section.key}
+                  onClick={() => setActiveSection(section.key as SectionKey)}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-md transition-all group relative ${
+                    isAIOpen ? "justify-center w-full" : "w-full text-left"
+                  } ${
+                    isActive
+                      ? "bg-primary/10 text-primary ring-1 ring-primary/20"
+                      : "text-muted hover:bg-secondary hover:text-tertiary"
+                  }`}
+                  title={isAIOpen ? section.label : undefined}
+                >
+                  {/* Icon wrapper */}
+                  <span
+                    className={
+                      isActive
+                        ? "text-primary"
+                        : "text-muted group-hover:text-tertiary"
+                    }
+                  >
+                    {section.icon}
+                  </span>
 
-        {activeSection === "personal_info" && (
-          <div className="animate-in fade-in slide-in-from-left-4 duration-300">
-            <PersonalInfoForm
-              resumeId={resume.id}
-              initialData={resume.personal_info || null}
-            />
+                  {/* hide text label when AI is Open */}
+                  <span
+                    className={`text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                      isAIOpen
+                        ? "w-0 opacity-0 overflow-hidden hidden"
+                        : "w-auto opacity-100"
+                    }`}
+                  >
+                    {section.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
 
-        {activeSection === "work_experience" && (
-          <Placeholder name="Work Experience" icon={<Briefcase size={40} />} />
-        )}
-        {activeSection === "education" && (
-          <Placeholder name="Education" icon={<GraduationCap size={40} />} />
-        )}
-        {activeSection === "skills" && (
-          <Placeholder name="Skills" icon={<Wrench size={40} />} />
-        )}
-        {activeSection === "languages" && (
-          <Placeholder name="Languages" icon={<Globe size={40} />} />
-        )}
-        {activeSection === "certifications" && (
-          <Placeholder name="Certifications" icon={<FileBadge size={40} />} />
-        )}
-        {activeSection === "honors_awards" && (
-          <Placeholder name="Honors & Awards" icon={<Award size={40} />} />
-        )}
-        {activeSection === "extra_curricular" && (
-          <Placeholder name="Extracurriculars" icon={<Tent size={40} />} />
-        )}
-        {activeSection === "resume_references" && (
-          <Placeholder name="References" icon={<Users size={40} />} />
-        )}
-      </div>
+        {/* column 2: form area */}
+        <div
+          className={`bg-whitecolor dark:bg-secondary border-r border-border overflow-y-auto p-6 scrollbar-hide shrink-0 transition-[width] duration-300 ease-in-out ${
+            isAIOpen ? "w-[380px]" : "w-[500px]"
+          }`}
+        >
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-tertiary truncate">
+              {SECTIONS.find((s) => s.key === activeSection)?.label}
+            </h2>
+            <p className="text-sm text-muted">Add details to your resume.</p>
+          </div>
 
-      <div className="flex-1 bg-secondary/50 overflow-y-auto p-8 flex justify-center transition-colors">
-        <div className="scale-[0.85] origin-top shadow-2xl">
-          <ResumePreview resume={resume} />
+          {activeSection === "personal_info" && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
+              <PersonalInfoForm
+                resumeId={resume.id}
+                initialData={resume.personal_info || null}
+              />
+            </div>
+          )}
+
+          {activeSection !== "personal_info" && (
+            <Placeholder
+              name={SECTIONS.find((s) => s.key === activeSection)?.label || ""}
+            />
+          )}
+        </div>
+
+        {/* column 3: preview area */}
+        {/* FLEX-1 */}
+        <div className="flex-1 bg-secondary overflow-y-auto p-8 flex justify-center transition-all duration-300 ease-in-out">
+          <div
+            className={`origin-top shadow-2xl transition-all duration-300 ${
+              isAIOpen ? "scale-[0.75] xl:scale-[0.85]" : "scale-[0.85]"
+            }`}
+          >
+            <ResumePreview resume={resume} />
+          </div>
+        </div>
+
+        {/* column 4: AI Analysis sidebar */}
+        <div
+          className={`bg-whitecolor dark:bg-secondary border-l border-border transition-[width,opacity] duration-300 ease-in-out overflow-hidden flex flex-col ${
+            isAIOpen ? "w-[350px] opacity-100" : "w-0 opacity-0"
+          }`}
+        >
+          <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2 text-primary font-bold">
+              <Bot size={20} />
+              <span>AI Assistant</span>
+            </div>
+            <button
+              onClick={() => setIsAIOpen(false)}
+              className="text-muted hover:text-tertiary"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* AI content place holder */}
+          <div className="flex-1 p-6 overflow-y-auto">
+            <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 mb-6">
+              <h4 className="font-semibold text-sm mb-2 text-tertiary">
+                Analysis Ready
+              </h4>
+              <p className="text-xs text-muted leading-relaxed">
+                I can analyze your resume for keywords, grammar, and formatting
+                issues.
+              </p>
+            </div>
+            <div className="mt-8 text-center">
+              <button className="px-4 py-2 bg-tertiary text-whitecolor text-xs rounded-full hover:opacity-90 transition-opacity">
+                Analyze Resume
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function Placeholder({ name, icon }: { name: string; icon: any }) {
+function Placeholder({ name }: { name: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-border rounded-lg bg-background/50 text-muted">
-      <div className="mb-4 opacity-50">{icon}</div>
       <p className="text-sm font-medium">{name} Form Coming Soon</p>
     </div>
   );

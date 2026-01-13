@@ -22,7 +22,7 @@ export default function ResumePreview({ resume }: { resume: Resume }) {
   return (
     <div
       id="resume-preview"
-      className="bg-whitecolor dark:bg-background shadow-2xl w-[210mm] min-h-[297mm] p-10 mx-auto text-sm leading-relaxed text-muted transition-colors print:bg-white print:text-black print:shadow-none print:m-0"
+      className="bg-whitecolor dark:bg-background w-[210mm] min-h-[297mm] p-10 mx-auto text-sm leading-relaxed text-muted transition-colors print:bg-white print:text-black print:shadow-none print:m-0"
     >
       <header className="border-b-2 border-tertiary pb-6 mb-6">
         <h1 className="text-3xl font-bold uppercase tracking-wide text-tertiary mb-2">
