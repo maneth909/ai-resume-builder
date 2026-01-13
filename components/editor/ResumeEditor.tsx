@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, Suspense } from "react"; // Added Suspense
 import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation"; // 👈 Import navigation hooks
 import { Resume } from "@/types/resume";
 import PersonalInfoForm from "@/components/form/PersonalInfoForm";
+import WorkExperienceForm from "@/components/form/WorkExperienceForm";
 import ResumePreview from "@/components/ResumePreview";
 import {
   User,
@@ -59,14 +61,32 @@ interface ResumeEditorProps {
   resume: Resume;
 }
 
-export default function ResumeEditor({ resume }: ResumeEditorProps) {
-  const [activeSection, setActiveSection] =
-    useState<SectionKey>("personal_info");
-  const [isAIOpen, setIsAIOpen] = useState(false);
+// 1. Create the Main Content Component
+function EditorContent({ resume }: ResumeEditorProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // 2. Derive state from URL, default to "personal_info" and closed AI
+  const activeSection =
+    (searchParams.get("section") as SectionKey) || "personal_info";
+  const isAIOpen = searchParams.get("ai") === "true";
+
+  // 3. Helper to update URL without reloading
+  const updateState = (key: string, value: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+    // scroll: false prevents the page from jumping to top on click
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   return (
     <div className="flex flex-col h-screen bg-whitecolor dark:bg-background text-tertiary transition-colors overflow-hidden">
-      {/* ---------------- app bar ---------------- */}
+      {/* ---------------- APP BAR ---------------- */}
       <header className="h-16 border-b border-border flex items-center justify-between px-4 bg-whitecolor dark:bg-background shrink-0 z-20 transition-all">
         <div className="flex items-center gap-4">
           <Link
@@ -84,6 +104,7 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* ... existing buttons ... */}
           <button className="px-3 py-2 text-sm font-medium text-tertiary bg-transparent border border-border rounded-md hover:bg-secondary flex items-center gap-2 transition-colors">
             <Share2 size={16} />
             <span className="hidden sm:inline">Share</span>
@@ -95,9 +116,10 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
 
           <div className="w-px h-8 bg-border mx-1" />
 
-          {/* ai toggle button*/}
+          {/* AI TOGGLE BUTTON */}
           <button
-            onClick={() => setIsAIOpen(!isAIOpen)}
+            // UPDATE: Toggle URL param
+            onClick={() => updateState("ai", isAIOpen ? null : "true")}
             className={`p-2 rounded-md border transition-all ${
               isAIOpen
                 ? "bg-primary text-whitecolor border-primary"
@@ -110,9 +132,9 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
         </div>
       </header>
 
-      {/* ---------------- main layout ---------------- */}
+      {/* ---------------- MAIN LAYOUT ---------------- */}
       <div className="flex flex-1 overflow-hidden">
-        {/* column1: sidebar navigation */}
+        {/* COLUMN 1: SIDEBAR NAVIGATION */}
         <div
           className={`bg-whitecolor dark:bg-secondary border-r border-border flex flex-col overflow-y-auto shrink-0 transition-[width] duration-300 ease-in-out ${
             isAIOpen ? "w-20 items-center" : "w-48"
@@ -132,7 +154,8 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
               return (
                 <button
                   key={section.key}
-                  onClick={() => setActiveSection(section.key as SectionKey)}
+                  // UPDATE: Set URL param
+                  onClick={() => updateState("section", section.key)}
                   className={`flex items-center gap-3 px-3 py-3 rounded-md transition-all group relative ${
                     isAIOpen ? "justify-center w-full" : "w-full text-left"
                   } ${
@@ -142,7 +165,6 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
                   }`}
                   title={isAIOpen ? section.label : undefined}
                 >
-                  {/* Icon wrapper */}
                   <span
                     className={
                       isActive
@@ -153,7 +175,6 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
                     {section.icon}
                   </span>
 
-                  {/* hide text label when AI is Open */}
                   <span
                     className={`text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                       isAIOpen
@@ -169,7 +190,7 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
           </div>
         </div>
 
-        {/* column 2: form area */}
+        {/* COLUMN 2: FORM AREA */}
         <div
           className={`bg-whitecolor dark:bg-secondary border-r border-border overflow-y-auto p-6 scrollbar-hide shrink-0 transition-[width] duration-300 ease-in-out ${
             isAIOpen ? "w-[380px]" : "w-[500px]"
@@ -191,15 +212,26 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
             </div>
           )}
 
-          {activeSection !== "personal_info" && (
-            <Placeholder
-              name={SECTIONS.find((s) => s.key === activeSection)?.label || ""}
-            />
+          {activeSection === "work_experience" && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
+              <WorkExperienceForm
+                resumeId={resume.id}
+                initialData={resume.work_experience || []}
+              />
+            </div>
           )}
+
+          {activeSection !== "personal_info" &&
+            activeSection !== "work_experience" && (
+              <Placeholder
+                name={
+                  SECTIONS.find((s) => s.key === activeSection)?.label || ""
+                }
+              />
+            )}
         </div>
 
-        {/* column 3: preview area */}
-        {/* FLEX-1 */}
+        {/* COLUMN 3: PREVIEW AREA */}
         <div className="flex-1 bg-secondary overflow-y-auto p-8 flex justify-center transition-all duration-300 ease-in-out">
           <div
             className={`origin-top shadow-2xl transition-all duration-300 ${
@@ -210,7 +242,7 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
           </div>
         </div>
 
-        {/* column 4: AI Analysis sidebar */}
+        {/* COLUMN 4: AI Analysis Sidebar */}
         <div
           className={`bg-whitecolor dark:bg-secondary border-l border-border transition-[width,opacity] duration-300 ease-in-out overflow-hidden flex flex-col ${
             isAIOpen ? "w-[350px] opacity-100" : "w-0 opacity-0"
@@ -222,14 +254,14 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
               <span>AI Assistant</span>
             </div>
             <button
-              onClick={() => setIsAIOpen(false)}
+              // UPDATE: Close AI via URL
+              onClick={() => updateState("ai", null)}
               className="text-muted hover:text-tertiary"
             >
               <X size={18} />
             </button>
           </div>
 
-          {/* AI content place holder */}
           <div className="flex-1 p-6 overflow-y-auto">
             <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 mb-6">
               <h4 className="font-semibold text-sm mb-2 text-tertiary">
@@ -249,6 +281,21 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+// 4. Wrap in Suspense (Required for useSearchParams in Next.js 14+)
+export default function ResumeEditor(props: ResumeEditorProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen flex items-center justify-center">
+          Loading Editor...
+        </div>
+      }
+    >
+      <EditorContent {...props} />
+    </Suspense>
   );
 }
 
