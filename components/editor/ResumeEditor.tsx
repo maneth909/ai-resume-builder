@@ -12,6 +12,7 @@ import SkillsForm from "@/components/form/SkillsForm";
 import LanguageForm from "@/components/form/LanguageForm";
 import CertificationForm from "@/components/form/CertificationForm";
 import HonorAwardForm from "@/components/form/HonorAwardForm";
+import ExtraCurricularForm from "@/components/form/ExtraCurricularForm";
 import {
   User,
   Briefcase,
@@ -58,7 +59,11 @@ const SECTIONS = [
     icon: <FileBadge size={20} />,
   },
   { key: "honors_awards", label: "Honors", icon: <Award size={20} /> },
-  { key: "extra_curricular", label: "Activities", icon: <Tent size={20} /> },
+  {
+    key: "extra_curricular",
+    label: "Extra-curriculars",
+    icon: <Tent size={20} />,
+  },
   { key: "resume_references", label: "References", icon: <Users size={20} /> },
 ];
 
@@ -142,7 +147,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
         {/* COLUMN 1: SIDEBAR NAVIGATION */}
         <div
           className={`bg-whitecolor dark:bg-secondary border-r border-border flex flex-col overflow-y-auto shrink-0 transition-[width] duration-300 ease-in-out ${
-            isAIOpen ? "w-20 items-center" : "w-48"
+            isAIOpen ? "w-20 items-center" : "w-51"
           }`}
         >
           <div className="p-4 space-y-1 w-full">
@@ -258,7 +263,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
             </div>
           )}
 
-          {/* 6. CERTIFICATIONS (NEW) */}
+          {/* 6. CERTIFICATIONS */}
           {activeSection === "certifications" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <CertificationForm
@@ -268,12 +273,22 @@ function EditorContent({ resume }: ResumeEditorProps) {
             </div>
           )}
 
-          {/* 7. HONORS & AWARDS (NEW) */}
+          {/* 7. HONORS & AWARDS */}
           {activeSection === "honors_awards" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <HonorAwardForm
                 resumeId={resume.id}
                 initialData={resume.honors_awards || []}
+              />
+            </div>
+          )}
+
+          {/* 8. EXTRA CURRICULAR */}
+          {activeSection === "extra_curricular" && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
+              <ExtraCurricularForm
+                resumeId={resume.id}
+                initialData={resume.extra_curricular || []}
               />
             </div>
           )}
@@ -284,7 +299,8 @@ function EditorContent({ resume }: ResumeEditorProps) {
             activeSection !== "skills" &&
             activeSection !== "languages" &&
             activeSection !== "certifications" &&
-            activeSection !== "honors_awards" && (
+            activeSection !== "honors_awards" &&
+            activeSection !== "extra_curricular" && (
               <Placeholder
                 name={
                   SECTIONS.find((s) => s.key === activeSection)?.label || ""

@@ -63,7 +63,6 @@ export interface ExtraCurricular {
   id: string;
   title: string;
   organization: string | null;
-  location: string | null;
   start_date: string | null;
   end_date: string | null;
   is_current: boolean;

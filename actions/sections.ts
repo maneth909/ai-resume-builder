@@ -8,6 +8,7 @@ import {
   Language,
   Certification,
   HonorAward,
+  ExtraCurricular,
 } from "@/types/resume";
 import { revalidatePath } from "next/cache";
 
@@ -346,6 +347,63 @@ export async function deleteHonorAward(resumeId: string, awardId: string) {
     .from("honors_awards")
     .delete()
     .eq("id", awardId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+// --- EXTRA CURRICULAR ACTIONS ---
+function cleanActivityData(data: Partial<ExtraCurricular>) {
+  return {
+    ...data,
+    start_date: data.start_date === "" ? null : data.start_date,
+    end_date: data.is_current || data.end_date === "" ? null : data.end_date,
+  };
+}
+
+export async function addExtraCurricular(
+  resumeId: string,
+  data: Partial<ExtraCurricular>
+) {
+  const supabase = await createSupabaseServerClient();
+  const cleanedData = cleanActivityData(data);
+
+  const { error } = await supabase.from("extra_curricular").insert({
+    ...cleanedData,
+    resume_id: resumeId,
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function editExtraCurricular(
+  resumeId: string,
+  activityId: string,
+  data: Partial<ExtraCurricular>
+) {
+  const supabase = await createSupabaseServerClient();
+  const cleanedData = cleanActivityData(data);
+
+  const { error } = await supabase
+    .from("extra_curricular")
+    .update(cleanedData)
+    .eq("id", activityId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function deleteExtraCurricular(
+  resumeId: string,
+  activityId: string
+) {
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("extra_curricular")
+    .delete()
+    .eq("id", activityId);
 
   if (error) throw new Error(error.message);
   revalidatePath(`/resumes/${resumeId}`);
