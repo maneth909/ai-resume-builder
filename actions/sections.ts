@@ -165,3 +165,27 @@ export async function deleteEducation(resumeId: string, educationId: string) {
   if (error) throw new Error(error.message);
   revalidatePath(`/resumes/${resumeId}`);
 }
+
+// --- SKILLS ACTIONS ---
+export async function addSkill(resumeId: string, name: string) {
+  const supabase = await createSupabaseServerClient();
+
+  if (!name.trim()) return;
+
+  const { error } = await supabase.from("skills").insert({
+    name: name.trim(),
+    resume_id: resumeId,
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function deleteSkill(resumeId: string, skillId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase.from("skills").delete().eq("id", skillId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}

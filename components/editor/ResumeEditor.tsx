@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react"; // Added Suspense
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, usePathname, useSearchParams } from "next/navigation"; // 👈 Import navigation hooks
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Resume } from "@/types/resume";
 import PersonalInfoForm from "@/components/form/PersonalInfoForm";
 import WorkExperienceForm from "@/components/form/WorkExperienceForm";
 import EducationForm from "@/components/form/EducationForm";
 import ResumePreview from "@/components/ResumePreview";
+import SkillsForm from "@/components/form/SkillsForm";
 import {
   User,
   Briefcase,
@@ -234,9 +235,20 @@ function EditorContent({ resume }: ResumeEditorProps) {
             </div>
           )}
 
+          {/* 4. SKILLS */}
+          {activeSection === "skills" && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
+              <SkillsForm
+                resumeId={resume.id}
+                initialData={resume.skills || []}
+              />
+            </div>
+          )}
+
           {activeSection !== "personal_info" &&
             activeSection !== "work_experience" &&
-            activeSection !== "education" && (
+            activeSection !== "education" &&
+            activeSection !== "skills" && (
               <Placeholder
                 name={
                   SECTIONS.find((s) => s.key === activeSection)?.label || ""
