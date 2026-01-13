@@ -6,6 +6,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation"; // ðŸ
 import { Resume } from "@/types/resume";
 import PersonalInfoForm from "@/components/form/PersonalInfoForm";
 import WorkExperienceForm from "@/components/form/WorkExperienceForm";
+import EducationForm from "@/components/form/EducationForm";
 import ResumePreview from "@/components/ResumePreview";
 import {
   User,
@@ -203,6 +204,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
             <p className="text-sm text-muted">Add details to your resume.</p>
           </div>
 
+          {/* 1. PERSONAL INFO */}
           {activeSection === "personal_info" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <PersonalInfoForm
@@ -212,6 +214,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
             </div>
           )}
 
+          {/* 2. WORK EXPERIENCE */}
           {activeSection === "work_experience" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <WorkExperienceForm
@@ -221,8 +224,19 @@ function EditorContent({ resume }: ResumeEditorProps) {
             </div>
           )}
 
+          {/* 3. EDUCATION */}
+          {activeSection === "education" && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
+              <EducationForm
+                resumeId={resume.id}
+                initialData={resume.education || []}
+              />
+            </div>
+          )}
+
           {activeSection !== "personal_info" &&
-            activeSection !== "work_experience" && (
+            activeSection !== "work_experience" &&
+            activeSection !== "education" && (
               <Placeholder
                 name={
                   SECTIONS.find((s) => s.key === activeSection)?.label || ""

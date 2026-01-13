@@ -1,7 +1,7 @@
 "use server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PersonalInfo, WorkExperience } from "@/types/resume";
+import { PersonalInfo, WorkExperience, Education } from "@/types/resume";
 import { revalidatePath } from "next/cache";
 
 // -----Personal Info Section-----
@@ -109,6 +109,58 @@ export async function deleteWorkExperience(
     .from("work_experience")
     .delete()
     .eq("id", experienceId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+// --- EDUCATION ACTIONS ---
+// Helper to clean dates
+function cleanEducationData(data: Partial<Education>) {
+  return {
+    ...data,
+    start_date: data.start_date === "" ? null : data.start_date,
+    end_date: data.is_current || data.end_date === "" ? null : data.end_date,
+  };
+}
+
+export async function addEducation(resumeId: string, data: Partial<Education>) {
+  const supabase = await createSupabaseServerClient();
+  const cleanedData = cleanEducationData(data);
+
+  const { error } = await supabase.from("education").insert({
+    ...cleanedData,
+    resume_id: resumeId,
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function editEducation(
+  resumeId: string,
+  educationId: string,
+  data: Partial<Education>
+) {
+  const supabase = await createSupabaseServerClient();
+  const cleanedData = cleanEducationData(data);
+
+  const { error } = await supabase
+    .from("education")
+    .update(cleanedData)
+    .eq("id", educationId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function deleteEducation(resumeId: string, educationId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("education")
+    .delete()
+    .eq("id", educationId);
 
   if (error) throw new Error(error.message);
   revalidatePath(`/resumes/${resumeId}`);
