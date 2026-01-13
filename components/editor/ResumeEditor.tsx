@@ -10,6 +10,7 @@ import EducationForm from "@/components/form/EducationForm";
 import ResumePreview from "@/components/ResumePreview";
 import SkillsForm from "@/components/form/SkillsForm";
 import LanguageForm from "@/components/form/LanguageForm";
+import CertificationForm from "@/components/form/CertificationForm";
 import {
   User,
   Briefcase,
@@ -256,11 +257,22 @@ function EditorContent({ resume }: ResumeEditorProps) {
             </div>
           )}
 
+          {/* 6. CERTIFICATIONS (NEW) */}
+          {activeSection === "certifications" && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
+              <CertificationForm
+                resumeId={resume.id}
+                initialData={resume.certifications || []}
+              />
+            </div>
+          )}
+
           {activeSection !== "personal_info" &&
             activeSection !== "work_experience" &&
             activeSection !== "education" &&
             activeSection !== "skills" &&
-            activeSection !== "languages" && (
+            activeSection !== "languages" &&
+            activeSection !== "certifications" && (
               <Placeholder
                 name={
                   SECTIONS.find((s) => s.key === activeSection)?.label || ""

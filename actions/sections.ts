@@ -6,6 +6,7 @@ import {
   WorkExperience,
   Education,
   Language,
+  Certification,
 } from "@/types/resume";
 import { revalidatePath } from "next/cache";
 
@@ -237,6 +238,60 @@ export async function deleteLanguage(resumeId: string, languageId: string) {
     .from("languages")
     .delete()
     .eq("id", languageId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+// --- CERTIFICATION ACTIONS ---
+function cleanCertificationData(data: Partial<Certification>) {
+  return {
+    ...data,
+    issue_date: data.issue_date === "" ? null : data.issue_date,
+    expiration_date: data.expiration_date === "" ? null : data.expiration_date,
+  };
+}
+
+export async function addCertification(
+  resumeId: string,
+  data: Partial<Certification>
+) {
+  const supabase = await createSupabaseServerClient();
+  const cleanedData = cleanCertificationData(data);
+
+  const { error } = await supabase.from("certifications").insert({
+    ...cleanedData,
+    resume_id: resumeId,
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function editCertification(
+  resumeId: string,
+  certId: string,
+  data: Partial<Certification>
+) {
+  const supabase = await createSupabaseServerClient();
+  const cleanedData = cleanCertificationData(data);
+
+  const { error } = await supabase
+    .from("certifications")
+    .update(cleanedData)
+    .eq("id", certId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function deleteCertification(resumeId: string, certId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("certifications")
+    .delete()
+    .eq("id", certId);
 
   if (error) throw new Error(error.message);
   revalidatePath(`/resumes/${resumeId}`);
