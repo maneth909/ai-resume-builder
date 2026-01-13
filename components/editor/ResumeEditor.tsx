@@ -9,6 +9,7 @@ import WorkExperienceForm from "@/components/form/WorkExperienceForm";
 import EducationForm from "@/components/form/EducationForm";
 import ResumePreview from "@/components/ResumePreview";
 import SkillsForm from "@/components/form/SkillsForm";
+import LanguageForm from "@/components/form/LanguageForm";
 import {
   User,
   Briefcase,
@@ -245,10 +246,21 @@ function EditorContent({ resume }: ResumeEditorProps) {
             </div>
           )}
 
+          {/* 5. LANGUAGES */}
+          {activeSection === "languages" && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
+              <LanguageForm
+                resumeId={resume.id}
+                initialData={resume.languages || []}
+              />
+            </div>
+          )}
+
           {activeSection !== "personal_info" &&
             activeSection !== "work_experience" &&
             activeSection !== "education" &&
-            activeSection !== "skills" && (
+            activeSection !== "skills" &&
+            activeSection !== "languages" && (
               <Placeholder
                 name={
                   SECTIONS.find((s) => s.key === activeSection)?.label || ""

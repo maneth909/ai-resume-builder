@@ -1,7 +1,12 @@
 "use server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PersonalInfo, WorkExperience, Education } from "@/types/resume";
+import {
+  PersonalInfo,
+  WorkExperience,
+  Education,
+  Language,
+} from "@/types/resume";
 import { revalidatePath } from "next/cache";
 
 // -----Personal Info Section-----
@@ -185,6 +190,53 @@ export async function deleteSkill(resumeId: string, skillId: string) {
   const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase.from("skills").delete().eq("id", skillId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+// --- LANGUAGE ACTIONS ---
+export async function addLanguage(resumeId: string, data: Partial<Language>) {
+  const supabase = await createSupabaseServerClient();
+
+  if (!data.name?.trim()) return;
+
+  const { error } = await supabase.from("languages").insert({
+    name: data.name.trim(),
+    proficiency: data.proficiency || "Native", // Default if missing
+    resume_id: resumeId,
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function editLanguage(
+  resumeId: string,
+  languageId: string,
+  data: Partial<Language>
+) {
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("languages")
+    .update({
+      name: data.name?.trim(),
+      proficiency: data.proficiency,
+    })
+    .eq("id", languageId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function deleteLanguage(resumeId: string, languageId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("languages")
+    .delete()
+    .eq("id", languageId);
 
   if (error) throw new Error(error.message);
   revalidatePath(`/resumes/${resumeId}`);
