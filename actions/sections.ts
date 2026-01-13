@@ -7,11 +7,11 @@ import {
   Education,
   Language,
   Certification,
+  HonorAward,
 } from "@/types/resume";
 import { revalidatePath } from "next/cache";
 
 // -----Personal Info Section-----
-
 async function saveSectionData(tableName: string, resumeId: string, data: any) {
   const supabase = await createSupabaseServerClient();
 
@@ -292,6 +292,60 @@ export async function deleteCertification(resumeId: string, certId: string) {
     .from("certifications")
     .delete()
     .eq("id", certId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+// --- HONOR & AWARDS ACTIONS ---
+// Helper to clean dates
+function cleanHonorData(data: Partial<HonorAward>) {
+  return {
+    ...data,
+    award_date: data.award_date === "" ? null : data.award_date,
+  };
+}
+
+export async function addHonorAward(
+  resumeId: string,
+  data: Partial<HonorAward>
+) {
+  const supabase = await createSupabaseServerClient();
+  const cleanedData = cleanHonorData(data);
+
+  const { error } = await supabase.from("honors_awards").insert({
+    ...cleanedData,
+    resume_id: resumeId,
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function editHonorAward(
+  resumeId: string,
+  awardId: string,
+  data: Partial<HonorAward>
+) {
+  const supabase = await createSupabaseServerClient();
+  const cleanedData = cleanHonorData(data);
+
+  const { error } = await supabase
+    .from("honors_awards")
+    .update(cleanedData)
+    .eq("id", awardId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function deleteHonorAward(resumeId: string, awardId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("honors_awards")
+    .delete()
+    .eq("id", awardId);
 
   if (error) throw new Error(error.message);
   revalidatePath(`/resumes/${resumeId}`);
