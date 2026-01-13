@@ -9,6 +9,9 @@
   --color-secondary: var(--color-secondary);
   --color-tertiary: var(--color-tertiary);
   --color-background: var(--color-background);
+  --color-muted: var(--color-muted);
+  --color-border: var(--color-border);
+  --color-error: var(--color-error);
 }
 
 /* DARK MODE SETUP */
@@ -22,6 +25,9 @@
   --color-secondary: #ededed;
   --color-tertiary: #171717;
   --color-background: #f8f9fa;
+  --color-muted: #64748b;
+  --color-border: #d1d5db;
+  --color-error: #b91c1c;
 }
 
 .dark {
@@ -31,6 +37,9 @@
   --color-secondary: #252d36;
   --color-tertiary: #f8f9fa;
   --color-background: #1b202a;
+  --color-muted: #94a3b8;
+  --color-border: #374151;
+  --color-error: #f87171;
 }
 
 /* GLOBAL RESETS */

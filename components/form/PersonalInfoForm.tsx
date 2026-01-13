@@ -1,9 +1,9 @@
 "use client";
 
 import { PersonalInfo } from "@/types/resume";
-import { updatePersonalInfo } from "@/actions/sections"; // Ensure this path is correct
+import { updatePersonalInfo } from "@/actions/sections";
 import { useState } from "react";
-import { Loader2, Save } from "lucide-react"; // Optional: Add nice icons
+import { Loader2, Save, AlertCircle } from "lucide-react";
 
 interface Props {
   resumeId: string;
@@ -20,24 +20,49 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
       summary: "",
     }
   );
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof PersonalInfo, string>>
+  >({});
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    // Reset status when user types so they can save again
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    // clear error immediately when user types
+    if (errors[name as keyof PersonalInfo]) {
+      setErrors({ ...errors, [name]: undefined });
+    }
     if (status !== "idle") setStatus("idle");
   };
 
+  const validate = () => {
+    const newErrors: Partial<Record<keyof PersonalInfo, string>> = {};
+
+    if (!formData.full_name?.trim())
+      newErrors.full_name = "Full Name is required";
+    if (!formData.email?.trim()) newErrors.email = "Email is required";
+    if (!formData.phone?.trim()) newErrors.phone = "Phone is required";
+    if (!formData.location?.trim()) newErrors.location = "Location is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSave = async () => {
+    if (!validate()) {
+      setStatus("error");
+      return;
+    }
+
     setLoading(true);
     setStatus("idle");
     try {
       await updatePersonalInfo(resumeId, formData);
       setStatus("success");
-      // Optional: Clear success message after 3 seconds
       setTimeout(() => setStatus("idle"), 3000);
     } catch (error) {
       console.error(error);
@@ -47,81 +72,113 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
     }
   };
 
+  const getInputStyles = (fieldName: keyof PersonalInfo) => {
+    const hasError = !!errors[fieldName];
+    return `w-full px-3 py-2 bg-transparent border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
+      hasError
+        ? "border-error focus:ring-error"
+        : "border-border focus:ring-primary focus:border-transparent"
+    }`;
+  };
+
+  const labelStyles =
+    "block text-xs font-medium text-muted mb-1 uppercase tracking-wider";
+
   return (
     <div className="space-y-6">
-      {/* Removed the outer border/shadow and the <h2> Title 
-          because ResumeEditor already provides them. */}
-
       <div className="grid grid-cols-1 gap-4">
         {/* Full Name */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Full Name</label>
+        <div>
+          <label className={labelStyles}>
+            Full Name <span className="text-error">*</span>
+          </label>
           <input
             name="full_name"
             value={formData.full_name || ""}
             onChange={handleChange}
-            placeholder="e.g. Sok Dara"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            placeholder="e.g. John Snow"
+            className={getInputStyles("full_name")}
           />
+          {errors.full_name && (
+            <p className="text-error text-xs mt-1">{errors.full_name}</p>
+          )}
         </div>
 
         {/* Email & Phone Row */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Email</label>
+          <div>
+            <label className={labelStyles}>
+              Email <span className="text-error">*</span>
+            </label>
             <input
               name="email"
               value={formData.email || ""}
               onChange={handleChange}
               placeholder="name@example.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              className={getInputStyles("email")}
             />
+            {errors.email && (
+              <p className="text-error text-xs mt-1">{errors.email}</p>
+            )}
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Phone</label>
+          <div>
+            <label className={labelStyles}>
+              Phone <span className="text-error">*</span>
+            </label>
             <input
               name="phone"
               value={formData.phone || ""}
               onChange={handleChange}
               placeholder="+855 12 345 678"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              className={getInputStyles("phone")}
             />
+            {errors.phone && (
+              <p className="text-error text-xs mt-1">{errors.phone}</p>
+            )}
           </div>
         </div>
 
         {/* Location */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Location</label>
+        <div>
+          <label className={labelStyles}>
+            Location <span className="text-error">*</span>
+          </label>
           <input
             name="location"
             value={formData.location || ""}
             onChange={handleChange}
             placeholder="Phnom Penh, Cambodia"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            className={getInputStyles("location")}
           />
+          {errors.location && (
+            <p className="text-error text-xs mt-1">{errors.location}</p>
+          )}
         </div>
 
-        {/* Summary */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
-            Professional Summary
-          </label>
+        {/* Summary (Optional - No Asterisk) */}
+        <div>
+          <label className={labelStyles}>Professional Summary</label>
           <textarea
             name="summary"
             value={formData.summary || ""}
             onChange={handleChange}
             rows={5}
-            placeholder="Briefly describe your professional background and goals..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
+            placeholder="Briefly describe your professional background..."
+            className={`${getInputStyles("summary")} resize-none`}
           />
-          <p className="text-xs text-gray-400 text-right">
-            {(formData.summary || "").length} chars
-          </p>
+          <div className="flex justify-between items-center mt-1">
+            <span className="text-error text-xs h-4 block">
+              {errors.summary}
+            </span>
+            <p className="text-xs text-muted text-right">
+              {(formData.summary || "").length} chars
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Footer Actions */}
-      <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+      <div className="pt-4 border-t border-border flex items-center justify-between">
         <div className="text-sm">
           {status === "success" && (
             <span className="text-green-600 flex items-center gap-1 animate-in fade-in">
@@ -129,8 +186,9 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
             </span>
           )}
           {status === "error" && (
-            <span className="text-red-600 flex items-center gap-1 animate-in fade-in">
-              ⚠ Error saving
+            <span className="text-error flex items-center gap-1 animate-in fade-in">
+              <AlertCircle size={16} />
+              Please fix the errors above
             </span>
           )}
         </div>
@@ -140,8 +198,8 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
           disabled={loading || status === "success"}
           className={`flex items-center gap-2 px-6 py-2 rounded-md font-medium text-white transition-all ${
             status === "success"
-              ? "bg-green-600 hover:bg-green-700"
-              : "bg-blue-600 hover:bg-blue-700"
+              ? "bg-green-600"
+              : "bg-primary hover:opacity-90"
           } disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           {loading ? (

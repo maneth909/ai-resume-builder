@@ -16,7 +16,7 @@ import {
   Tent,
 } from "lucide-react";
 
-// 1. Define the sections based on your interface
+// define the sections
 type SectionKey =
   | "personal_info"
   | "work_experience"
@@ -28,7 +28,7 @@ type SectionKey =
   | "extra_curricular"
   | "resume_references";
 
-// 2. Configuration for the Sidebar (Label + Icon)
+// configuration for the Sidebar
 const SECTIONS = [
   { key: "personal_info", label: "Personal Info", icon: <User size={18} /> },
   {
@@ -47,7 +47,7 @@ const SECTIONS = [
   { key: "honors_awards", label: "Honors & Awards", icon: <Award size={18} /> },
   {
     key: "extra_curricular",
-    label: "Extra-curriculars",
+    label: "Extracurriculars",
     icon: <Tent size={18} />,
   },
   { key: "resume_references", label: "References", icon: <Users size={18} /> },
@@ -63,10 +63,9 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
 
   return (
     <div className="flex h-[calc(100vh-64px)]">
-      {/* --- COLUMN 1: SIDEBAR NAVIGATION --- */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col overflow-y-auto">
+      <div className="w-64 bg-whitecolor dark:bg-secondary border-r border-border flex flex-col overflow-y-auto transition-colors">
         <div className="p-4 space-y-1">
-          <p className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <p className="px-4 py-2 text-xs font-semibold text-muted uppercase tracking-wider">
             Sections
           </p>
 
@@ -74,10 +73,10 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
             <button
               key={section.key}
               onClick={() => setActiveSection(section.key as SectionKey)}
-              className={`flex items-center gap-3 px-4 py-3 w-full text-left text-sm font-medium rounded-md transition-colors ${
+              className={`flex items-center gap-3 px-4 py-3 w-full text-left text-sm font-medium rounded-md transition-all ${
                 activeSection === section.key
-                  ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  ? "bg-primary/10 text-primary ring-1 ring-primary/20"
+                  : "text-muted hover:bg-secondary hover:text-tertiary"
               }`}
             >
               {section.icon}
@@ -87,17 +86,13 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
         </div>
       </div>
 
-      {/* --- COLUMN 2: FORM AREA --- */}
-      <div className="w-[450px] bg-white border-r border-gray-200 overflow-y-auto p-6 scrollbar-hide">
-        {/* Header for the Form Column */}
+      <div className="w-[450px] bg-whitecolor dark:bg-secondary border-r border-border overflow-y-auto p-6 scrollbar-hide transition-colors">
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">
+          <h2 className="text-xl font-bold text-tertiary">
             {SECTIONS.find((s) => s.key === activeSection)?.label}
           </h2>
-          <p className="text-sm text-gray-500">Add details to your resume.</p>
+          <p className="text-sm text-muted">Add details to your resume.</p>
         </div>
-
-        {/* --- CONDITIONAL RENDERING OF FORMS --- */}
 
         {activeSection === "personal_info" && (
           <div className="animate-in fade-in slide-in-from-left-4 duration-300">
@@ -108,7 +103,6 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
           </div>
         )}
 
-        {/* PLACEHOLDERS FOR OTHER FORMS (We will build these next) */}
         {activeSection === "work_experience" && (
           <Placeholder name="Work Experience" icon={<Briefcase size={40} />} />
         )}
@@ -135,8 +129,7 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
         )}
       </div>
 
-      {/* --- COLUMN 3: PREVIEW AREA --- */}
-      <div className="flex-1 bg-gray-100 overflow-y-auto p-8 flex justify-center">
+      <div className="flex-1 bg-secondary/50 overflow-y-auto p-8 flex justify-center transition-colors">
         <div className="scale-[0.85] origin-top shadow-2xl">
           <ResumePreview resume={resume} />
         </div>
@@ -145,10 +138,9 @@ export default function ResumeEditor({ resume }: ResumeEditorProps) {
   );
 }
 
-// Simple Placeholder Component to keep the code clean until we build the real forms
 function Placeholder({ name, icon }: { name: string; icon: any }) {
   return (
-    <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 text-gray-400">
+    <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-border rounded-lg bg-background/50 text-muted">
       <div className="mb-4 opacity-50">{icon}</div>
       <p className="text-sm font-medium">{name} Form Coming Soon</p>
     </div>

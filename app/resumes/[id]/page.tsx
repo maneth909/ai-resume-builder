@@ -1,4 +1,4 @@
-import { getResumeWithAllData } from "@/lib/resume-detail"; // Adjust path if needed
+import { getResumeWithAllData } from "@/lib/resume-detail";
 import ResumeEditor from "@/components/editor/ResumeEditor";
 import Link from "next/link";
 import { ArrowLeft, Download, Share2 } from "lucide-react";
@@ -14,35 +14,35 @@ export default async function ResumeEditPage({
   if (!resume) return <div>Resume not found</div>;
 
   return (
-    <div className="flex flex-col h-screen bg-white">
-      {/* 1. APP BAR (Server Component part) */}
-      <header className="h-16 border-b border-gray-200 flex items-center justify-between px-4 bg-white shrink-0 z-10">
+    <div className="flex flex-col h-screen bg-whitecolor dark:bg-background text-tertiary">
+      <header className="h-16 border-b border-border flex items-center justify-between px-4 bg-whitecolor dark:bg-background shrink-0 z-10 transition-colors">
         <div className="flex items-center gap-4">
           <Link
             href="/dashboard"
-            className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
+            className="p-2 hover:bg-secondary rounded-full text-muted hover:text-tertiary transition-colors"
           >
             <ArrowLeft size={20} />
           </Link>
+
           <div>
-            <h1 className="font-semibold text-gray-900">{resume.title}</h1>
-            <p className="text-xs text-gray-500">Last saved just now</p>
+            <h1 className="font-semibold text-tertiary">{resume.title}</h1>
+            <p className="text-xs text-muted">Last saved just now</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-2">
+          <button className="px-4 py-2 text-sm font-medium text-tertiary bg-transparent border border-border rounded-md hover:bg-secondary flex items-center gap-2 transition-colors">
             <Share2 size={16} />
             Share
           </button>
-          <button className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800 flex items-center gap-2">
+
+          <button className="px-4 py-2 text-sm font-medium text-whitecolor dark:text-background bg-tertiary rounded-md hover:opacity-90 flex items-center gap-2 transition-opacity">
             <Download size={16} />
             Download
           </button>
         </div>
       </header>
 
-      {/* 2. THE EDITOR (Client Component) */}
       <ResumeEditor resume={resume} />
     </div>
   );
