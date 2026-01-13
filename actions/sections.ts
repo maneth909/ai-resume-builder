@@ -9,6 +9,7 @@ import {
   Certification,
   HonorAward,
   ExtraCurricular,
+  Reference,
 } from "@/types/resume";
 import { revalidatePath } from "next/cache";
 
@@ -404,6 +405,62 @@ export async function deleteExtraCurricular(
     .from("extra_curricular")
     .delete()
     .eq("id", activityId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+// --- REFERENCE ACTIONS ---
+// Helper to clean data
+function cleanReferenceData(data: Partial<Reference>) {
+  const { name, position, organization, email, phone, relationship } = data;
+  return {
+    name,
+    position,
+    organization,
+    email,
+    phone,
+    relationship,
+  };
+}
+
+export async function addReference(resumeId: string, data: Partial<Reference>) {
+  const supabase = await createSupabaseServerClient();
+  const cleanedData = cleanReferenceData(data);
+
+  const { error } = await supabase.from("resume_references").insert({
+    ...cleanedData,
+    resume_id: resumeId,
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function editReference(
+  resumeId: string,
+  refId: string,
+  data: Partial<Reference>
+) {
+  const supabase = await createSupabaseServerClient();
+  const cleanedData = cleanReferenceData(data);
+
+  const { error } = await supabase
+    .from("resume_references")
+    .update(cleanedData)
+    .eq("id", refId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
+export async function deleteReference(resumeId: string, refId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("resume_references")
+    .delete()
+    .eq("id", refId);
 
   if (error) throw new Error(error.message);
   revalidatePath(`/resumes/${resumeId}`);

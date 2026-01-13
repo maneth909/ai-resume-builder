@@ -13,6 +13,7 @@ import LanguageForm from "@/components/form/LanguageForm";
 import CertificationForm from "@/components/form/CertificationForm";
 import HonorAwardForm from "@/components/form/HonorAwardForm";
 import ExtraCurricularForm from "@/components/form/ExtraCurricularForm";
+import ReferenceForm from "@/components/form/ReferenceForm";
 import {
   User,
   Briefcase,
@@ -293,6 +294,16 @@ function EditorContent({ resume }: ResumeEditorProps) {
             </div>
           )}
 
+          {/* 9. REFERENCES (NEW) */}
+          {activeSection === "resume_references" && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
+              <ReferenceForm
+                resumeId={resume.id}
+                initialData={resume.resume_references || []}
+              />
+            </div>
+          )}
+
           {activeSection !== "personal_info" &&
             activeSection !== "work_experience" &&
             activeSection !== "education" &&
@@ -300,7 +311,8 @@ function EditorContent({ resume }: ResumeEditorProps) {
             activeSection !== "languages" &&
             activeSection !== "certifications" &&
             activeSection !== "honors_awards" &&
-            activeSection !== "extra_curricular" && (
+            activeSection !== "extra_curricular" &&
+            activeSection !== "resume_references" && (
               <Placeholder
                 name={
                   SECTIONS.find((s) => s.key === activeSection)?.label || ""
