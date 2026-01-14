@@ -6,17 +6,18 @@ import {
   addEducation,
   editEducation,
   deleteEducation,
-} from "@/actions/sections";
+} from "@/actions/sections"; // Update path if needed
 import {
   Plus,
   Pencil,
   Trash2,
   Loader2,
-  Save,
   ArrowLeft,
   GraduationCap,
 } from "lucide-react";
 import { format } from "date-fns";
+import { useResume } from "@/context/ResumeContext";
+import { useDebouncedCallback } from "use-debounce";
 
 interface Props {
   resumeId: string;
@@ -24,14 +25,16 @@ interface Props {
 }
 
 export default function EducationForm({ resumeId, initialData }: Props) {
+  const { resumeData, updateResumeData, setIsSaving, markSaved } = useResume();
+
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
   const [errors, setErrors] = useState<
     Partial<Record<keyof Education, string>>
   >({});
 
-  // Form State
   const [formData, setFormData] = useState<Partial<Education>>({
     school: "",
     degree: "",
@@ -42,19 +45,47 @@ export default function EducationForm({ resumeId, initialData }: Props) {
     description: "",
   });
 
-  const resetForm = () => {
-    setFormData({
-      school: "",
-      degree: "",
-      field_of_study: "",
-      start_date: "",
-      end_date: "",
-      is_current: false,
-      description: "",
-    });
-    setErrors({});
-    setCurrentId(null);
-    setIsEditing(false);
+  const debouncedUpdate = useDebouncedCallback(
+    async (id: string, data: Partial<Education>) => {
+      try {
+        await editEducation(resumeId, id, data);
+        markSaved();
+      } catch (error) {
+        console.error(error);
+        setIsSaving(false);
+      }
+    },
+    2000
+  );
+
+  const handleCreate = async () => {
+    setIsCreating(true);
+    try {
+      // Create empty to trigger validation styling immediately
+      const newEdu = await addEducation(resumeId, {
+        school: "",
+        degree: "",
+      });
+
+      updateResumeData("education", [...resumeData.education, newEdu]);
+
+      setFormData({
+        school: "",
+        degree: "",
+        field_of_study: "",
+        start_date: "",
+        end_date: "",
+        is_current: false,
+        description: "",
+      });
+      setErrors({});
+      setCurrentId(newEdu.id);
+      setIsEditing(true);
+    } catch (error) {
+      alert("Failed to create new entry");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleEdit = (item: Education) => {
@@ -72,43 +103,55 @@ export default function EducationForm({ resumeId, initialData }: Props) {
     setIsEditing(true);
   };
 
-  const validate = () => {
-    const newErrors: Partial<Record<keyof Education, string>> = {};
-    if (!formData.school?.trim()) newErrors.school = "School name is required";
-    if (!formData.degree?.trim()) newErrors.degree = "Degree is required";
+  const handleChange = (field: keyof Education, value: string | boolean) => {
+    if (!currentId) return;
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSave = async () => {
-    if (!validate()) return;
-    setLoading(true);
-    try {
-      if (currentId) {
-        await editEducation(resumeId, currentId, formData);
-      } else {
-        await addEducation(resumeId, formData);
+    // 1. Validation Logic
+    if (field === "school" && value === "") {
+      setErrors((prev) => ({ ...prev, school: "School is required" }));
+    } else if (field === "degree" && value === "") {
+      setErrors((prev) => ({ ...prev, degree: "Degree is required" }));
+    } else {
+      if (errors[field as keyof Education]) {
+        setErrors((prev) => ({ ...prev, [field]: undefined }));
       }
-      resetForm();
-    } catch (error) {
-      console.error(error);
-      alert("Failed to save");
-    } finally {
-      setLoading(false);
     }
+
+    // 2. Update Local State
+    const newData = { ...formData, [field]: value };
+    setFormData(newData);
+
+    // 3. Update Preview
+    const updatedList = resumeData.education.map((item) =>
+      item.id === currentId ? { ...item, ...newData } : item
+    );
+    updateResumeData("education", updatedList as Education[]);
+
+    // 4. Autosave
+    setIsSaving(true);
+    debouncedUpdate(currentId, newData);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this education entry?")) return;
+    const isJustCreated = currentId === id && !formData.school;
+    if (!isJustCreated && !confirm("Delete this education entry?")) return;
+
     try {
       await deleteEducation(resumeId, id);
+      const filteredList = resumeData.education.filter(
+        (item) => item.id !== id
+      );
+      updateResumeData("education", filteredList);
+
+      if (currentId === id) {
+        setIsEditing(false);
+        setCurrentId(null);
+      }
     } catch (error) {
       alert("Failed to delete");
     }
   };
 
-  // --- STYLES ---
   const getInputStyles = (fieldName: keyof Education) => {
     const hasError = !!errors[fieldName];
     return `w-full px-3 py-2 bg-transparent border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
@@ -121,20 +164,33 @@ export default function EducationForm({ resumeId, initialData }: Props) {
   const labelStyles =
     "block text-xs font-medium text-muted mb-1 uppercase tracking-wider";
 
-  // --- VIEW 1: THE FORM ---
+  // --- VIEW 1: EDIT MODE ---
   if (isEditing) {
     return (
-      <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-200">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="animate-in fade-in slide-in-from-right-8 duration-300">
+        <div className="border-t border-border mb-6" />
+
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setIsEditing(false);
+                setCurrentId(null);
+              }}
+              className="p-1 hover:bg-secondary rounded-full text-muted transition-colors"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <h3 className="font-semibold text-tertiary">Edit Education</h3>
+          </div>
+
           <button
-            onClick={resetForm}
-            className="p-1 hover:bg-secondary rounded-full text-muted transition-colors"
+            onClick={() => currentId && handleDelete(currentId)}
+            className="text-muted hover:text-error transition-colors p-2 rounded-md hover:bg-error/10"
+            title="Delete this entry"
           >
-            <ArrowLeft size={20} />
+            <Trash2 size={18} />
           </button>
-          <h3 className="font-semibold text-tertiary">
-            {currentId ? "Edit Education" : "Add Education"}
-          </h3>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
@@ -145,12 +201,10 @@ export default function EducationForm({ resumeId, initialData }: Props) {
             </label>
             <input
               value={formData.school || ""}
-              onChange={(e) => {
-                setFormData({ ...formData, school: e.target.value });
-                if (errors.school) setErrors({ ...errors, school: undefined });
-              }}
+              onChange={(e) => handleChange("school", e.target.value)}
               className={getInputStyles("school")}
               placeholder="e.g. Harvard University"
+              autoFocus
             />
             {errors.school && (
               <p className="text-error text-xs mt-1">{errors.school}</p>
@@ -165,11 +219,7 @@ export default function EducationForm({ resumeId, initialData }: Props) {
               </label>
               <input
                 value={formData.degree || ""}
-                onChange={(e) => {
-                  setFormData({ ...formData, degree: e.target.value });
-                  if (errors.degree)
-                    setErrors({ ...errors, degree: undefined });
-                }}
+                onChange={(e) => handleChange("degree", e.target.value)}
                 className={getInputStyles("degree")}
                 placeholder="e.g. Bachelor's"
               />
@@ -181,9 +231,7 @@ export default function EducationForm({ resumeId, initialData }: Props) {
               <label className={labelStyles}>Field of Study</label>
               <input
                 value={formData.field_of_study || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, field_of_study: e.target.value })
-                }
+                onChange={(e) => handleChange("field_of_study", e.target.value)}
                 className={getInputStyles("field_of_study")}
                 placeholder="e.g. Computer Science"
               />
@@ -197,9 +245,7 @@ export default function EducationForm({ resumeId, initialData }: Props) {
               <input
                 type="date"
                 value={formData.start_date || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, start_date: e.target.value })
-                }
+                onChange={(e) => handleChange("start_date", e.target.value)}
                 className={getInputStyles("start_date")}
               />
             </div>
@@ -209,9 +255,7 @@ export default function EducationForm({ resumeId, initialData }: Props) {
                 type="date"
                 disabled={formData.is_current}
                 value={formData.end_date || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, end_date: e.target.value })
-                }
+                onChange={(e) => handleChange("end_date", e.target.value)}
                 className={`${getInputStyles("end_date")} ${
                   formData.is_current
                     ? "opacity-50 cursor-not-allowed bg-secondary/50"
@@ -223,9 +267,7 @@ export default function EducationForm({ resumeId, initialData }: Props) {
                   type="checkbox"
                   id="is_current"
                   checked={formData.is_current}
-                  onChange={(e) =>
-                    setFormData({ ...formData, is_current: e.target.checked })
-                  }
+                  onChange={(e) => handleChange("is_current", e.target.checked)}
                   className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
                 />
                 <label
@@ -244,28 +286,11 @@ export default function EducationForm({ resumeId, initialData }: Props) {
             <textarea
               rows={4}
               value={formData.description || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
+              onChange={(e) => handleChange("description", e.target.value)}
               className={`${getInputStyles("description")} resize-none`}
               placeholder="Additional details, honors, etc..."
             />
           </div>
-        </div>
-
-        <div className="pt-4 flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-md hover:opacity-90 disabled:opacity-50 transition-all"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : (
-              <Save size={18} />
-            )}
-            Save
-          </button>
         </div>
       </div>
     );
@@ -283,66 +308,98 @@ export default function EducationForm({ resumeId, initialData }: Props) {
           </div>
           <p className="text-sm text-muted mb-4">No education added yet.</p>
           <button
-            onClick={() => setIsEditing(true)}
-            className="text-sm font-medium text-primary hover:underline"
+            onClick={handleCreate}
+            disabled={isCreating}
+            className="text-sm font-medium text-primary hover:underline flex items-center justify-center gap-2 mx-auto disabled:opacity-50"
           >
+            {isCreating && <Loader2 className="animate-spin" size={14} />}
             Add Education
           </button>
         </div>
       ) : (
         <div className="space-y-3">
-          {initialData.map((item) => (
-            <div
-              key={item.id}
-              className="group p-4 border border-border rounded-lg bg-whitecolor dark:bg-secondary/20 hover:border-primary/50 transition-all"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="font-semibold text-tertiary">{item.school}</h4>
-                  <p className="text-sm text-muted">
-                    {item.degree}{" "}
-                    {item.field_of_study ? `• ${item.field_of_study}` : ""}
-                  </p>
-                  <p className="text-xs text-muted mt-1">
-                    {item.start_date
-                      ? format(new Date(item.start_date), "MMM yyyy")
-                      : ""}{" "}
-                    -
-                    {item.is_current
-                      ? " Present"
-                      : item.end_date
-                      ? format(new Date(item.end_date), " MMM yyyy")
-                      : ""}
-                  </p>
-                </div>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => handleEdit(item)}
-                    className="p-2 text-muted hover:text-primary hover:bg-primary/10 rounded"
-                    title="Edit"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="p-2 text-muted hover:text-error hover:bg-error/10 rounded"
-                    title="Delete"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+          {resumeData.education.map((item) => {
+            // Check for missing required fields
+            const isInvalid = !item.school?.trim() || !item.degree?.trim();
+
+            return (
+              <div
+                key={item.id}
+                onClick={() => handleEdit(item)}
+                // Dynamic border styling based on validity
+                className={`group p-4 border rounded-lg bg-whitecolor dark:bg-secondary/20 transition-all cursor-pointer relative ${
+                  isInvalid
+                    ? "border-error/50 hover:border-error bg-error/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    {/* School Name - Red if missing */}
+                    <h4
+                      className={`font-semibold ${
+                        !item.school ? "text-error italic" : "text-tertiary"
+                      }`}
+                    >
+                      {item.school || "(Missing School Name)"}
+                    </h4>
+
+                    {/* Degree - Red if missing */}
+                    <p
+                      className={`text-sm ${
+                        !item.degree ? "text-error" : "text-muted"
+                      }`}
+                    >
+                      {item.degree || "(Missing Degree)"}{" "}
+                      {item.field_of_study ? `• ${item.field_of_study}` : ""}
+                    </p>
+
+                    <p className="text-xs text-muted mt-1">
+                      {item.start_date
+                        ? format(new Date(item.start_date), "MMM yyyy")
+                        : ""}{" "}
+                      -
+                      {item.is_current
+                        ? " Present"
+                        : item.end_date
+                        ? format(new Date(item.end_date), " MMM yyyy")
+                        : ""}
+                    </p>
+                  </div>
+
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      className="p-2 text-muted hover:text-primary hover:bg-primary/10 rounded"
+                      title="Edit"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(item.id);
+                      }}
+                      className="p-2 text-muted hover:text-error hover:bg-error/10 rounded"
+                      title="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <button
-            onClick={() => {
-              resetForm();
-              setIsEditing(true);
-            }}
-            className="w-full py-3 flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg text-muted hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-sm font-medium"
+            onClick={handleCreate}
+            disabled={isCreating}
+            className="w-full py-3 flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg text-muted hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-sm font-medium disabled:opacity-50"
           >
-            <Plus size={16} />
+            {isCreating ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              <Plus size={16} />
+            )}
             Add Another School
           </button>
         </div>

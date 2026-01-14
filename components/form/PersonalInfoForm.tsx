@@ -3,7 +3,8 @@
 import { PersonalInfo } from "@/types/resume";
 import { updatePersonalInfo } from "@/actions/sections";
 import { useState } from "react";
-import { Loader2, Save, AlertCircle } from "lucide-react";
+import { useResume } from "@/context/ResumeContext";
+import { useDebouncedCallback } from "use-debounce";
 
 interface Props {
   resumeId: string;
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export default function PersonalInfoForm({ resumeId, initialData }: Props) {
+  const { updateResumeData, setIsSaving, markSaved } = useResume();
+
   const [formData, setFormData] = useState<Partial<PersonalInfo>>(
     initialData || {
       full_name: "",
@@ -20,56 +23,70 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
       summary: "",
     }
   );
+
   const [errors, setErrors] = useState<
     Partial<Record<keyof PersonalInfo, string>>
   >({});
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+
+  // 2. The Debounced Saver (2 SECONDS)
+  // We allow saving even with errors so user data is safe
+  const debouncedSave = useDebouncedCallback(
+    async (data: Partial<PersonalInfo>) => {
+      try {
+        await updatePersonalInfo(resumeId, data);
+        markSaved();
+      } catch (error) {
+        console.error(error);
+        setIsSaving(false);
+      }
+    },
+    2000
+  );
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
 
-    // clear error immediately when user types
-    if (errors[name as keyof PersonalInfo]) {
-      setErrors({ ...errors, [name]: undefined });
-    }
-    if (status !== "idle") setStatus("idle");
-  };
+    // 1. REAL-TIME VALIDATION (Visual Only)
+    // We check if required fields are empty and set visual errors immediately
+    let newError = undefined;
 
-  const validate = () => {
-    const newErrors: Partial<Record<keyof PersonalInfo, string>> = {};
-
-    if (!formData.full_name?.trim())
-      newErrors.full_name = "Full Name is required";
-    if (!formData.email?.trim()) newErrors.email = "Email is required";
-    if (!formData.phone?.trim()) newErrors.phone = "Phone is required";
-    if (!formData.location?.trim()) newErrors.location = "Location is required";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSave = async () => {
-    if (!validate()) {
-      setStatus("error");
-      return;
+    if (name === "full_name" && !value.trim()) {
+      newError = "Full Name is required";
+    } else if (name === "email" && !value.trim()) {
+      newError = "Email is required";
+    } else if (name === "phone" && !value.trim()) {
+      newError = "Phone is required";
+    } else if (name === "location" && !value.trim()) {
+      newError = "Location is required";
     }
 
-    setLoading(true);
-    setStatus("idle");
-    try {
-      await updatePersonalInfo(resumeId, formData);
-      setStatus("success");
-      setTimeout(() => setStatus("idle"), 3000);
-    } catch (error) {
-      console.error(error);
-      setStatus("error");
-    } finally {
-      setLoading(false);
+    // Update Error State
+    if (newError) {
+      setErrors((prev) => ({ ...prev, [name]: newError }));
+    } else {
+      // Only clear error if one existed
+      if (errors[name as keyof PersonalInfo]) {
+        setErrors((prev) => ({ ...prev, [name]: undefined }));
+      }
     }
+
+    // 2. Immediate Updates
+    const newData = { ...formData, [name]: value };
+    setFormData(newData); // Update Input
+
+    // Update Preview (Context)
+    updateResumeData("personal_info", {
+      ...initialData,
+      ...newData,
+    } as PersonalInfo);
+
+    // 3. Set Status
+    setIsSaving(true);
+
+    // 4. Queue DB Call (Save regardless of errors)
+    debouncedSave(newData);
   };
 
   const getInputStyles = (fieldName: keyof PersonalInfo) => {
@@ -85,7 +102,7 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
     "block text-xs font-medium text-muted mb-1 uppercase tracking-wider";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-300">
       <div className="grid grid-cols-1 gap-4">
         {/* Full Name */}
         <div>
@@ -155,7 +172,7 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
           )}
         </div>
 
-        {/* Summary (Optional - No Asterisk) */}
+        {/* Summary */}
         <div>
           <label className={labelStyles}>Professional Summary</label>
           <textarea
@@ -167,48 +184,12 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
             className={`${getInputStyles("summary")} resize-none`}
           />
           <div className="flex justify-between items-center mt-1">
-            <span className="text-error text-xs h-4 block">
-              {errors.summary}
-            </span>
+            <span className="text-error text-xs h-4 block"></span>
             <p className="text-xs text-muted text-right">
               {(formData.summary || "").length} chars
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Footer Actions */}
-      <div className="pt-4 border-t border-border flex items-center justify-between">
-        <div className="text-sm">
-          {status === "success" && (
-            <span className="text-green-600 flex items-center gap-1 animate-in fade-in">
-              ✓ Saved successfully
-            </span>
-          )}
-          {status === "error" && (
-            <span className="text-error flex items-center gap-1 animate-in fade-in">
-              <AlertCircle size={16} />
-              Please fix the errors above
-            </span>
-          )}
-        </div>
-
-        <button
-          onClick={handleSave}
-          disabled={loading || status === "success"}
-          className={`flex items-center gap-2 px-6 py-2 rounded-md font-medium text-white transition-all ${
-            status === "success"
-              ? "bg-green-600"
-              : "bg-primary hover:opacity-90"
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
-        >
-          {loading ? (
-            <Loader2 className="animate-spin" size={18} />
-          ) : (
-            <Save size={18} />
-          )}
-          {loading ? "Saving..." : status === "success" ? "Saved" : "Save"}
-        </button>
       </div>
     </div>
   );

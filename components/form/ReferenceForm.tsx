@@ -12,12 +12,14 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  Save,
   ArrowLeft,
   Users,
   Mail,
   Phone,
+  AlertCircle, // 1. Import Alert Icon
 } from "lucide-react";
+import { useResume } from "@/context/ResumeContext";
+import { useDebouncedCallback } from "use-debounce";
 
 interface Props {
   resumeId: string;
@@ -25,14 +27,16 @@ interface Props {
 }
 
 export default function ReferenceForm({ resumeId, initialData }: Props) {
+  const { resumeData, updateResumeData, setIsSaving, markSaved } = useResume();
+
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
   const [errors, setErrors] = useState<
     Partial<Record<keyof Reference, string>>
   >({});
 
-  // Form State
   const [formData, setFormData] = useState<Partial<Reference>>({
     name: "",
     position: "",
@@ -42,18 +46,49 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
     relationship: "",
   });
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      position: "",
-      organization: "",
-      email: "",
-      phone: "",
-      relationship: "",
-    });
-    setErrors({});
-    setCurrentId(null);
-    setIsEditing(false);
+  const debouncedUpdate = useDebouncedCallback(
+    async (id: string, data: Partial<Reference>) => {
+      try {
+        await editReference(resumeId, id, data);
+        markSaved();
+      } catch (error) {
+        console.error(error);
+        setIsSaving(false);
+      }
+    },
+    2000
+  );
+
+  const handleCreate = async () => {
+    setIsCreating(true);
+    try {
+      // Create empty to trigger validation
+      const newRef = await addReference(resumeId, {
+        name: "", // Empty triggers Name warning
+        organization: "", // Empty triggers Org warning
+      });
+
+      updateResumeData("resume_references", [
+        ...resumeData.resume_references,
+        newRef,
+      ]);
+
+      setFormData({
+        name: "",
+        position: "",
+        organization: "",
+        email: "",
+        phone: "",
+        relationship: "",
+      });
+      setErrors({});
+      setCurrentId(newRef.id);
+      setIsEditing(true);
+    } catch (error) {
+      alert("Failed to create reference");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleEdit = (item: Reference) => {
@@ -70,44 +105,58 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
     setIsEditing(true);
   };
 
-  const validate = () => {
-    const newErrors: Partial<Record<keyof Reference, string>> = {};
-    if (!formData.name?.trim()) newErrors.name = "Name is required";
-    if (!formData.organization?.trim())
-      newErrors.organization = "Organization is required";
+  const handleChange = (field: keyof Reference, value: string) => {
+    if (!currentId) return;
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSave = async () => {
-    if (!validate()) return;
-    setLoading(true);
-    try {
-      if (currentId) {
-        await editReference(resumeId, currentId, formData);
-      } else {
-        await addReference(resumeId, formData);
+    // 1. Validation Logic
+    if (field === "name" && !value.trim()) {
+      setErrors((prev) => ({ ...prev, name: "Name is required" }));
+    } else if (field === "organization" && !value.trim()) {
+      setErrors((prev) => ({
+        ...prev,
+        organization: "Organization is required",
+      }));
+    } else {
+      if (errors[field as keyof Reference]) {
+        setErrors((prev) => ({ ...prev, [field]: undefined }));
       }
-      resetForm();
-    } catch (error) {
-      console.error(error);
-      alert("Failed to save");
-    } finally {
-      setLoading(false);
     }
+
+    // 2. Update Local State
+    const newData = { ...formData, [field]: value };
+    setFormData(newData);
+
+    // 3. Update Preview
+    const updatedList = resumeData.resume_references.map((item) =>
+      item.id === currentId ? { ...item, ...newData } : item
+    );
+    updateResumeData("resume_references", updatedList as Reference[]);
+
+    // 4. Autosave
+    setIsSaving(true);
+    debouncedUpdate(currentId, newData);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this reference?")) return;
+    const isJustCreated = currentId === id && !formData.name;
+    if (!isJustCreated && !confirm("Delete this reference?")) return;
+
     try {
       await deleteReference(resumeId, id);
+      const filteredList = resumeData.resume_references.filter(
+        (item) => item.id !== id
+      );
+      updateResumeData("resume_references", filteredList);
+
+      if (currentId === id) {
+        setIsEditing(false);
+        setCurrentId(null);
+      }
     } catch (error) {
       alert("Failed to delete");
     }
   };
 
-  // --- STYLES ---
   const getInputStyles = (fieldName: keyof Reference) => {
     const hasError = !!errors[fieldName];
     return `w-full px-3 py-2 bg-transparent border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
@@ -120,20 +169,33 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
   const labelStyles =
     "block text-xs font-medium text-muted mb-1 uppercase tracking-wider";
 
-  // --- VIEW 1: THE FORM ---
+  // --- VIEW 1: EDIT MODE ---
   if (isEditing) {
     return (
-      <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-200">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="animate-in fade-in slide-in-from-right-8 duration-300">
+        <div className="border-t border-border mb-6" />
+
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setIsEditing(false);
+                setCurrentId(null);
+              }}
+              className="p-1 hover:bg-secondary rounded-full text-muted transition-colors"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <h3 className="font-semibold text-tertiary">Edit Reference</h3>
+          </div>
+
           <button
-            onClick={resetForm}
-            className="p-1 hover:bg-secondary rounded-full text-muted transition-colors"
+            onClick={() => currentId && handleDelete(currentId)}
+            className="text-muted hover:text-error transition-colors p-2 rounded-md hover:bg-error/10"
+            title="Delete"
           >
-            <ArrowLeft size={20} />
+            <Trash2 size={18} />
           </button>
-          <h3 className="font-semibold text-tertiary">
-            {currentId ? "Edit Reference" : "Add Reference"}
-          </h3>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
@@ -145,12 +207,10 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
               </label>
               <input
                 value={formData.name || ""}
-                onChange={(e) => {
-                  setFormData({ ...formData, name: e.target.value });
-                  if (errors.name) setErrors({ ...errors, name: undefined });
-                }}
+                onChange={(e) => handleChange("name", e.target.value)}
                 className={getInputStyles("name")}
                 placeholder="e.g. John Doe"
+                autoFocus
               />
               {errors.name && (
                 <p className="text-error text-xs mt-1">{errors.name}</p>
@@ -160,9 +220,7 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
               <label className={labelStyles}>Relationship</label>
               <input
                 value={formData.relationship || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, relationship: e.target.value })
-                }
+                onChange={(e) => handleChange("relationship", e.target.value)}
                 className={getInputStyles("relationship")}
                 placeholder="e.g. Manager"
               />
@@ -177,11 +235,7 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
               </label>
               <input
                 value={formData.organization || ""}
-                onChange={(e) => {
-                  setFormData({ ...formData, organization: e.target.value });
-                  if (errors.organization)
-                    setErrors({ ...errors, organization: undefined });
-                }}
+                onChange={(e) => handleChange("organization", e.target.value)}
                 className={getInputStyles("organization")}
                 placeholder="e.g. Google"
               />
@@ -193,9 +247,7 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
               <label className={labelStyles}>Position</label>
               <input
                 value={formData.position || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, position: e.target.value })
-                }
+                onChange={(e) => handleChange("position", e.target.value)}
                 className={getInputStyles("position")}
                 placeholder="e.g. CTO"
               />
@@ -209,9 +261,7 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
               <input
                 type="email"
                 value={formData.email || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
+                onChange={(e) => handleChange("email", e.target.value)}
                 className={getInputStyles("email")}
                 placeholder="john@example.com"
               />
@@ -221,29 +271,12 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
               <input
                 type="tel"
                 value={formData.phone || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
+                onChange={(e) => handleChange("phone", e.target.value)}
                 className={getInputStyles("phone")}
                 placeholder="+1 234 567 890"
               />
             </div>
           </div>
-        </div>
-
-        <div className="pt-4 flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="flex items-center gap-2 px-6 py-2 bg-primary text-whitecolor rounded-md hover:opacity-90 disabled:opacity-50 transition-all"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : (
-              <Save size={18} />
-            )}
-            Save
-          </button>
         </div>
       </div>
     );
@@ -261,71 +294,110 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
           </div>
           <p className="text-sm text-muted mb-4">No references added yet.</p>
           <button
-            onClick={() => setIsEditing(true)}
-            className="text-sm font-medium text-primary hover:underline"
+            onClick={handleCreate}
+            disabled={isCreating}
+            className="text-sm font-medium text-primary hover:underline flex items-center justify-center gap-2 mx-auto disabled:opacity-50"
           >
+            {isCreating && <Loader2 className="animate-spin" size={14} />}
             Add Reference
           </button>
         </div>
       ) : (
         <div className="space-y-3">
-          {initialData.map((item) => (
-            <div
-              key={item.id}
-              className="group p-4 border border-border rounded-lg bg-whitecolor dark:bg-secondary/20 hover:border-primary/50 transition-all"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="font-semibold text-tertiary">{item.name}</h4>
-                  <p className="text-sm text-muted">
-                    {item.position}
-                    {item.position && item.organization && " at "}
-                    {item.organization}
-                  </p>
+          {resumeData.resume_references.map((item) => {
+            // 2. CHECK VALIDITY
+            const isInvalid = !item.name?.trim() || !item.organization?.trim();
 
-                  <div className="mt-2 space-y-1">
-                    {item.email && (
-                      <div className="flex items-center gap-2 text-xs text-muted">
-                        <Mail size={12} />
-                        <span>{item.email}</span>
-                      </div>
-                    )}
-                    {item.phone && (
-                      <div className="flex items-center gap-2 text-xs text-muted">
-                        <Phone size={12} />
-                        <span>{item.phone}</span>
-                      </div>
-                    )}
+            return (
+              <div
+                key={item.id}
+                onClick={() => handleEdit(item)}
+                // 3. DYNAMIC BORDER & BG
+                className={`group p-4 border rounded-lg bg-whitecolor dark:bg-secondary/20 transition-all cursor-pointer relative ${
+                  isInvalid
+                    ? "border-error/50 hover:border-error bg-error/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 min-w-0 pr-6">
+                    {/* Name - Red if missing */}
+                    <h4
+                      className={`font-semibold truncate ${
+                        !item.name ? "text-error italic" : "text-tertiary"
+                      }`}
+                    >
+                      {item.name || "(Missing Name)"}
+                    </h4>
+
+                    <p className="text-sm text-muted">
+                      {item.position}
+                      {item.position && item.organization && " at "}
+                      {/* Org - Red if missing */}
+                      <span className={!item.organization ? "text-error" : ""}>
+                        {item.organization || "(Missing Organization)"}
+                      </span>
+                    </p>
+
+                    <div className="mt-2 space-y-1">
+                      {item.email && (
+                        <div className="flex items-center gap-2 text-xs text-muted">
+                          <Mail size={12} />
+                          <span>{item.email}</span>
+                        </div>
+                      )}
+                      {item.phone && (
+                        <div className="flex items-center gap-2 text-xs text-muted">
+                          <Phone size={12} />
+                          <span>{item.phone}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 4. WARNING ICON */}
+                  {isInvalid && (
+                    <div
+                      className="absolute top-4 right-12 text-error animate-pulse"
+                      title="Missing required fields"
+                    >
+                      <AlertCircle size={18} />
+                    </div>
+                  )}
+
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      className="p-2 text-muted hover:text-primary hover:bg-primary/10 rounded"
+                      title="Edit"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(item.id);
+                      }}
+                      className="p-2 text-muted hover:text-error hover:bg-error/10 rounded"
+                      title="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => handleEdit(item)}
-                    className="p-2 text-muted hover:text-primary hover:bg-primary/10 rounded"
-                    title="Edit"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="p-2 text-muted hover:text-error hover:bg-error/10 rounded"
-                    title="Delete"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <button
-            onClick={() => {
-              resetForm();
-              setIsEditing(true);
-            }}
-            className="w-full py-3 flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg text-muted hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-sm font-medium"
+            onClick={handleCreate}
+            disabled={isCreating}
+            className="w-full py-3 flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg text-muted hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-sm font-medium disabled:opacity-50"
           >
-            <Plus size={16} />
+            {isCreating ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              <Plus size={16} />
+            )}
             Add Another Reference
           </button>
         </div>

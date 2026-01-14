@@ -4,6 +4,10 @@ import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Resume } from "@/types/resume";
+
+import { ResumeProvider, useResume } from "@/context/ResumeContext";
+import SaveStatus from "@/components/editor/SaveStatus";
+
 import PersonalInfoForm from "@/components/form/PersonalInfoForm";
 import WorkExperienceForm from "@/components/form/WorkExperienceForm";
 import EducationForm from "@/components/form/EducationForm";
@@ -45,27 +49,61 @@ type SectionKey =
   | "resume_references";
 
 const SECTIONS = [
-  { key: "personal_info", label: "Personal Info", icon: <User size={20} /> },
+  {
+    key: "personal_info",
+    label: "Personal Info",
+    icon: <User size={18} />,
+    description:
+      "Get started with the basics: your name and contact information.",
+  },
   {
     key: "work_experience",
     label: "Experience",
-    icon: <Briefcase size={20} />,
+    icon: <Briefcase size={18} />,
+    description: "Highlight your professional journey and key achievements.",
   },
-  { key: "education", label: "Education", icon: <GraduationCap size={20} /> },
-  { key: "skills", label: "Skills", icon: <Wrench size={20} /> },
-  { key: "languages", label: "Languages", icon: <Globe size={20} /> },
+  {
+    key: "education",
+    label: "Education",
+    icon: <GraduationCap size={18} />,
+    description: "Showcase your academic background and qualifications.",
+  },
+  {
+    key: "skills",
+    label: "Skills",
+    icon: <Wrench size={18} />,
+    description: "List your technical expertise and soft skills.",
+  },
+  {
+    key: "languages",
+    label: "Languages",
+    icon: <Globe size={18} />,
+    description: "Add languages you speak and your proficiency levels.",
+  },
   {
     key: "certifications",
     label: "Certifications",
-    icon: <FileBadge size={20} />,
+    icon: <FileBadge size={18} />,
+    description: "Add professional certifications, licenses, and workshops.",
   },
-  { key: "honors_awards", label: "Honors", icon: <Award size={20} /> },
+  {
+    key: "honors_awards",
+    label: "Honors",
+    icon: <Award size={18} />,
+    description: "Highlight awards and recognitions you have received.",
+  },
   {
     key: "extra_curricular",
     label: "Extra-curriculars",
-    icon: <Tent size={20} />,
+    icon: <Tent size={18} />,
+    description: "Share your volunteering, clubs, and other activities.",
   },
-  { key: "resume_references", label: "References", icon: <Users size={20} /> },
+  {
+    key: "resume_references",
+    label: "References",
+    icon: <Users size={18} />,
+    description: "Add professional references who can vouch for your work.",
+  },
 ];
 
 interface ResumeEditorProps {
@@ -78,12 +116,18 @@ function EditorContent({ resume }: ResumeEditorProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // 2. Derive state from URL, default to "personal_info" and closed AI
+  // 2. GET LIVE DATA FROM CONTEXT
+  // We use this 'resumeData' for the Preview so updates are instant
+  const { resumeData } = useResume();
+
+  // 3. Derive state from URL, default to "personal_info" and closed AI
   const activeSection =
     (searchParams.get("section") as SectionKey) || "personal_info";
   const isAIOpen = searchParams.get("ai") === "true";
 
-  // 3. Helper to update URL without reloading
+  const activeSectionData = SECTIONS.find((s) => s.key === activeSection);
+
+  // 4. Helper to update URL without reloading
   const updateState = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
     if (value) {
@@ -107,10 +151,14 @@ function EditorContent({ resume }: ResumeEditorProps) {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="font-semibold text-tertiary truncate max-w-50">
+            <h1 className="font-semibold text-tertiary truncate max-w-50 leading-tight">
               {resume.title}
             </h1>
-            <p className="text-xs text-muted">Last saved just now</p>
+
+            {/* 2. INSERT STATUS COMPONENT HERE */}
+            <div className="h-4 flex items-center">
+              <SaveStatus />
+            </div>
           </div>
         </div>
 
@@ -207,11 +255,21 @@ function EditorContent({ resume }: ResumeEditorProps) {
             isAIOpen ? "w-[380px]" : "w-[500px]"
           }`}
         >
-          <div className="mb-6">
-            <h2 className="text-xl font-bold text-tertiary truncate">
-              {SECTIONS.find((s) => s.key === activeSection)?.label}
-            </h2>
-            <p className="text-sm text-muted">Add details to your resume.</p>
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+              {/* Icon Container */}
+              <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                {activeSectionData?.icon}
+              </div>
+              <h2 className="text-xl font-bold text-tertiary truncate">
+                {activeSectionData?.label}
+              </h2>
+            </div>
+
+            {/* Dynamic Description */}
+            <p className="text-sm text-muted leading-relaxed">
+              {activeSectionData?.description}
+            </p>
           </div>
 
           {/* 1. PERSONAL INFO */}
@@ -328,7 +386,8 @@ function EditorContent({ resume }: ResumeEditorProps) {
               isAIOpen ? "scale-[0.75] xl:scale-[0.85]" : "scale-[0.85]"
             }`}
           >
-            <ResumePreview resume={resume} />
+            {/* 3. USE LIVE DATA FROM CONTEXT */}
+            <ResumePreview resume={resumeData} />
           </div>
         </div>
 
@@ -374,7 +433,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
   );
 }
 
-// 4. Wrap in Suspense (Required for useSearchParams in Next.js 14+)
+// 4. Wrap in Suspense AND ResumeProvider (This fixes the error)
 export default function ResumeEditor(props: ResumeEditorProps) {
   return (
     <Suspense
@@ -384,7 +443,9 @@ export default function ResumeEditor(props: ResumeEditorProps) {
         </div>
       }
     >
-      <EditorContent {...props} />
+      <ResumeProvider initialData={props.resume}>
+        <EditorContent {...props} />
+      </ResumeProvider>
     </Suspense>
   );
 }

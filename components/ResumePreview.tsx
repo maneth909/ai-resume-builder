@@ -1,5 +1,6 @@
 import { Resume } from "@/types/resume";
 import { format } from "date-fns";
+import { Mail, Phone } from "lucide-react";
 
 export default function ResumePreview({ resume }: { resume: Resume }) {
   const {
@@ -16,7 +17,10 @@ export default function ResumePreview({ resume }: { resume: Resume }) {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "";
-    return format(new Date(dateString), "MMM yyyy");
+    // Check if date is valid before formatting to prevent errors while typing
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+    return format(date, "MMM yyyy");
   };
 
   return (
@@ -37,11 +41,13 @@ export default function ResumePreview({ resume }: { resume: Resume }) {
 
       {/* --- SUMMARY --- */}
       {personal_info?.summary && (
-        <section className="mb-6">
+        <section className="mb-6 break-inside-avoid">
           <h3 className="font-bold text-tertiary uppercase mb-2 border-b border-border pb-1">
             Professional Summary
           </h3>
-          <p className="text-muted">{personal_info.summary}</p>
+          <p className="text-muted whitespace-pre-line">
+            {personal_info.summary}
+          </p>
         </section>
       )}
 
@@ -53,7 +59,7 @@ export default function ResumePreview({ resume }: { resume: Resume }) {
           </h3>
           <div className="space-y-4">
             {work_experience.map((exp) => (
-              <div key={exp.id}>
+              <div key={exp.id} className="break-inside-avoid">
                 <div className="flex justify-between font-semibold text-tertiary">
                   <h4>{exp.job_title}</h4>
                   <span className="text-xs text-muted font-normal">
@@ -82,7 +88,7 @@ export default function ResumePreview({ resume }: { resume: Resume }) {
           </h3>
           <div className="space-y-3">
             {education.map((edu) => (
-              <div key={edu.id}>
+              <div key={edu.id} className="break-inside-avoid">
                 <div className="flex justify-between font-semibold text-tertiary">
                   <h4>{edu.school}</h4>
                   <span className="text-xs text-muted font-normal">
@@ -105,7 +111,7 @@ export default function ResumePreview({ resume }: { resume: Resume }) {
 
       {/* --- SKILLS --- */}
       {skills && skills.length > 0 && (
-        <section className="mb-6">
+        <section className="mb-6 break-inside-avoid">
           <h3 className="font-bold text-tertiary uppercase mb-2 border-b border-border pb-1">
             Skills
           </h3>
@@ -122,9 +128,42 @@ export default function ResumePreview({ resume }: { resume: Resume }) {
         </section>
       )}
 
+      {/* --- EXTRA CURRICULAR (NEW) --- */}
+      {extra_curricular && extra_curricular.length > 0 && (
+        <section className="mb-6">
+          <h3 className="font-bold text-tertiary uppercase mb-3 border-b border-border pb-1">
+            Volunteering & Activities
+          </h3>
+          <div className="space-y-3">
+            {extra_curricular.map((activity) => (
+              <div key={activity.id} className="break-inside-avoid">
+                <div className="flex justify-between font-semibold text-tertiary">
+                  <h4>{activity.title}</h4>
+                  <span className="text-xs text-muted font-normal">
+                    {formatDate(activity.start_date)} -{" "}
+                    {activity.is_current
+                      ? "Present"
+                      : formatDate(activity.end_date)}
+                  </span>
+                </div>
+                <div className="text-muted italic text-xs mb-1">
+                  {activity.organization}
+                  {/* Note: We removed location from ExtraCurricular type, so we don't render it here */}
+                </div>
+                {activity.description && (
+                  <p className="whitespace-pre-line text-xs text-muted">
+                    {activity.description}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* --- LANGUAGES --- */}
       {languages && languages.length > 0 && (
-        <section className="mb-6">
+        <section className="mb-6 break-inside-avoid">
           <h3 className="font-bold text-tertiary uppercase mb-2 border-b border-border pb-1">
             Languages
           </h3>
@@ -145,7 +184,7 @@ export default function ResumePreview({ resume }: { resume: Resume }) {
 
       {/* --- AWARDS & CERTIFICATIONS --- */}
       {(certifications?.length > 0 || honors_awards?.length > 0) && (
-        <section className="mb-6">
+        <section className="mb-6 break-inside-avoid">
           <h3 className="font-bold text-tertiary uppercase mb-2 border-b border-border pb-1">
             Certifications & Awards
           </h3>
@@ -153,7 +192,8 @@ export default function ResumePreview({ resume }: { resume: Resume }) {
             {certifications?.map((cert) => (
               <div key={cert.id} className="text-sm">
                 <span className="font-semibold text-tertiary">{cert.name}</span>{" "}
-                — {cert.issuer} ({formatDate(cert.issue_date)})
+                — {cert.issuer}{" "}
+                {cert.issue_date && `(${formatDate(cert.issue_date)})`}
               </div>
             ))}
             {honors_awards?.map((award) => (
@@ -161,7 +201,41 @@ export default function ResumePreview({ resume }: { resume: Resume }) {
                 <span className="font-semibold text-tertiary">
                   {award.title}
                 </span>{" "}
-                — {award.issuer} ({formatDate(award.award_date)})
+                — {award.issuer}{" "}
+                {award.award_date && `(${formatDate(award.award_date)})`}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* --- REFERENCES --- */}
+      {resume_references && resume_references.length > 0 && (
+        <section className="mb-6 break-inside-avoid">
+          <h3 className="font-bold text-tertiary uppercase mb-3 border-b border-border pb-1">
+            References
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {resume_references.map((ref) => (
+              <div key={ref.id} className="text-sm">
+                <div className="font-semibold text-tertiary">{ref.name}</div>
+                <div className="text-xs text-muted">{ref.position}</div>
+                <div className="text-xs text-muted italic mb-1">
+                  {ref.organization}
+                </div>
+
+                <div className="flex flex-col gap-0.5 text-xs text-muted">
+                  {ref.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail size={10} /> {ref.email}
+                    </div>
+                  )}
+                  {ref.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone size={10} /> {ref.phone}
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>

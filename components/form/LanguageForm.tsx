@@ -8,11 +8,12 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  Save,
   ArrowLeft,
   Globe,
   Check,
 } from "lucide-react";
+import { useResume } from "@/context/ResumeContext";
+import { useDebouncedCallback } from "use-debounce";
 
 interface Props {
   resumeId: string;
@@ -28,21 +29,52 @@ const PROFICIENCY_LEVELS = [
 ];
 
 export default function LanguageForm({ resumeId, initialData }: Props) {
+  const { resumeData, updateResumeData, setIsSaving, markSaved } = useResume();
+
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string }>({});
+  const [isCreating, setIsCreating] = useState(false);
 
   const [formData, setFormData] = useState<Partial<Language>>({
     name: "",
     proficiency: "Native",
   });
 
-  const resetForm = () => {
-    setFormData({ name: "", proficiency: "Native" });
-    setErrors({});
-    setCurrentId(null);
-    setIsEditing(false);
+  const [errors, setErrors] = useState<{ name?: string }>({});
+
+  const debouncedUpdate = useDebouncedCallback(
+    async (id: string, data: Partial<Language>) => {
+      try {
+        await editLanguage(resumeId, id, data);
+        markSaved();
+      } catch (error) {
+        console.error(error);
+        setIsSaving(false);
+      }
+    },
+    2000
+  );
+
+  const handleCreate = async () => {
+    setIsCreating(true);
+    try {
+      // 1. Create with empty name to trigger validation immediately
+      const newLang = await addLanguage(resumeId, {
+        name: "", // Empty string
+        proficiency: "Native",
+      });
+
+      updateResumeData("languages", [...resumeData.languages, newLang]);
+
+      setFormData({ name: "", proficiency: "Native" });
+      setErrors({});
+      setCurrentId(newLang.id);
+      setIsEditing(true);
+    } catch (error) {
+      alert("Failed to create language");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleEdit = (item: Language) => {
@@ -55,37 +87,47 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
     setIsEditing(true);
   };
 
-  const handleSave = async () => {
-    if (!formData.name?.trim()) {
+  const handleChange = (field: keyof Language, value: string) => {
+    if (!currentId) return;
+
+    if (field === "name" && !value.trim()) {
       setErrors({ name: "Language name is required" });
-      return;
+    } else {
+      if (errors.name) setErrors({});
     }
 
-    setLoading(true);
-    try {
-      if (currentId) {
-        await editLanguage(resumeId, currentId, formData);
-      } else {
-        await addLanguage(resumeId, formData);
-      }
-      resetForm();
-    } catch (error) {
-      alert("Failed to save");
-    } finally {
-      setLoading(false);
-    }
+    const newData = { ...formData, [field]: value };
+    setFormData(newData);
+
+    const updatedList = resumeData.languages.map((item) =>
+      item.id === currentId ? { ...item, ...newData } : item
+    );
+    updateResumeData("languages", updatedList as Language[]);
+
+    setIsSaving(true);
+    debouncedUpdate(currentId, newData);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Remove this language?")) return;
+    const isJustCreated = currentId === id && !formData.name;
+    if (!isJustCreated && !confirm("Remove this language?")) return;
+
     try {
       await deleteLanguage(resumeId, id);
+      const filteredList = resumeData.languages.filter(
+        (item) => item.id !== id
+      );
+      updateResumeData("languages", filteredList);
+
+      if (currentId === id) {
+        setIsEditing(false);
+        setCurrentId(null);
+      }
     } catch (error) {
       alert("Failed to delete");
     }
   };
 
-  // --- STYLES ---
   const inputStyles = `w-full px-3 py-2 bg-transparent border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
     errors.name
       ? "border-error focus:ring-error"
@@ -99,60 +141,68 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
   if (isEditing) {
     return (
       <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-200">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="border-t border-border mb-6" />
+
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setIsEditing(false);
+                setCurrentId(null);
+              }}
+              className="p-1 hover:bg-secondary rounded-full text-muted transition-colors"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <h3 className="font-semibold text-tertiary">
+              {currentId ? "Edit Language" : "Add Language"}
+            </h3>
+          </div>
+
           <button
-            onClick={resetForm}
-            className="p-1 hover:bg-secondary rounded-full text-muted transition-colors"
+            onClick={() => currentId && handleDelete(currentId)}
+            className="text-muted hover:text-error transition-colors p-2 rounded-md hover:bg-error/10"
+            title="Delete"
           >
-            <ArrowLeft size={20} />
+            <Trash2 size={18} />
           </button>
-          <h3 className="font-semibold text-tertiary">
-            {currentId ? "Edit Language" : "Add Language"}
-          </h3>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          {/* Language Name */}
           <div>
             <label className={labelStyles}>
               Language <span className="text-error">*</span>
             </label>
             <input
               value={formData.name || ""}
-              onChange={(e) => {
-                setFormData({ ...formData, name: e.target.value });
-                if (errors.name) setErrors({});
-              }}
+              onChange={(e) => handleChange("name", e.target.value)}
               className={inputStyles}
               placeholder="e.g. English, French"
+              autoFocus
             />
             {errors.name && (
               <p className="text-error text-xs mt-1">{errors.name}</p>
             )}
           </div>
 
-          {/* Proficiency Select */}
           <div>
             <label className={labelStyles}>Proficiency</label>
             <div className="relative">
               <select
                 value={formData.proficiency || "Native"}
-                onChange={(e) =>
-                  setFormData({ ...formData, proficiency: e.target.value })
-                }
+                onChange={(e) => handleChange("proficiency", e.target.value)}
                 className={`${inputStyles} appearance-none cursor-pointer`}
               >
                 {PROFICIENCY_LEVELS.map((level) => (
                   <option
                     key={level}
                     value={level}
-                    className="bg-whitecolor dark:bg-secondary"
+                    className="bg-whitecolor dark:bg-secondary text-tertiary"
                   >
                     {level}
                   </option>
                 ))}
               </select>
-              {/* Custom arrow for consistency */}
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
                 <svg
                   width="10"
@@ -170,21 +220,6 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
             </div>
           </div>
         </div>
-
-        <div className="pt-4 flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-md hover:opacity-90 disabled:opacity-50 transition-all"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : (
-              <Save size={18} />
-            )}
-            Save
-          </button>
-        </div>
       </div>
     );
   }
@@ -201,58 +236,80 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
           </div>
           <p className="text-sm text-muted mb-4">No languages added yet.</p>
           <button
-            onClick={() => setIsEditing(true)}
-            className="text-sm font-medium text-primary hover:underline"
+            onClick={handleCreate}
+            disabled={isCreating}
+            className="text-sm font-medium text-primary hover:underline flex items-center justify-center gap-2 mx-auto disabled:opacity-50"
           >
+            {isCreating && <Loader2 className="animate-spin" size={14} />}
             Add Language
           </button>
         </div>
       ) : (
         <div className="space-y-3">
-          {initialData.map((item) => (
-            <div
-              key={item.id}
-              className="group p-3 border border-border rounded-lg bg-whitecolor dark:bg-secondary/20 hover:border-primary/50 transition-all flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-secondary rounded-md text-primary">
-                  <Globe size={16} />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-tertiary text-sm">
-                    {item.name}
-                  </h4>
-                  <p className="text-xs text-muted">{item.proficiency}</p>
-                </div>
-              </div>
+          {resumeData.languages.map((item) => {
+            // 2. CHECK VALIDITY
+            const isInvalid = !item.name?.trim();
 
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => handleEdit(item)}
-                  className="p-2 text-muted hover:text-primary hover:bg-primary/10 rounded"
-                  title="Edit"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  className="p-2 text-muted hover:text-error hover:bg-error/10 rounded"
-                  title="Delete"
-                >
-                  <Trash2 size={14} />
-                </button>
+            return (
+              <div
+                key={item.id}
+                onClick={() => handleEdit(item)}
+                // 3. APPLY INVALID STYLES
+                className={`group p-3 border rounded-lg bg-whitecolor dark:bg-secondary/20 transition-all flex items-center justify-between cursor-pointer ${
+                  isInvalid
+                    ? "border-error/50 hover:border-error bg-error/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-secondary rounded-md text-tertiary">
+                    <Globe size={16} />
+                  </div>
+                  <div>
+                    {/* RED TEXT IF MISSING */}
+                    <h4
+                      className={`font-semibold text-sm ${
+                        !item.name ? "text-error italic" : "text-tertiary"
+                      }`}
+                    >
+                      {item.name || "(Missing Language)"}
+                    </h4>
+                    <p className="text-xs text-muted">{item.proficiency}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    className="p-2 text-muted hover:text-primary hover:bg-primary/10 rounded"
+                    title="Edit"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item.id);
+                    }}
+                    className="p-2 text-muted hover:text-error hover:bg-error/10 rounded"
+                    title="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <button
-            onClick={() => {
-              resetForm();
-              setIsEditing(true);
-            }}
-            className="w-full py-3 flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg text-muted hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-sm font-medium"
+            onClick={handleCreate}
+            disabled={isCreating}
+            className="w-full py-3 flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg text-muted hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-sm font-medium disabled:opacity-50"
           >
-            <Plus size={16} />
+            {isCreating ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              <Plus size={16} />
+            )}
             Add Another Language
           </button>
         </div>

@@ -13,11 +13,11 @@ import {
 } from "@/types/resume";
 import { revalidatePath } from "next/cache";
 
-// -----Personal Info Section-----
+// -----personal info section-----
 async function saveSectionData(tableName: string, resumeId: string, data: any) {
   const supabase = await createSupabaseServerClient();
 
-  // Check existence
+  // check existence
   const { data: existingRow } = await supabase
     .from(tableName)
     .select("id")
@@ -25,6 +25,7 @@ async function saveSectionData(tableName: string, resumeId: string, data: any) {
     .single();
 
   let error;
+  // if exists, update; else insert
   if (existingRow) {
     const result = await supabase
       .from(tableName)
@@ -37,15 +38,14 @@ async function saveSectionData(tableName: string, resumeId: string, data: any) {
       .insert({ ...data, resume_id: resumeId });
     error = result.error;
   }
-
   if (error) {
     console.error(`Error saving ${tableName}:`, error);
     throw new Error(`Failed to save ${tableName}`);
   }
 
+  // clear cache
   revalidatePath(`/resumes/${resumeId}`);
 }
-
 // update personal info
 export async function updatePersonalInfo(
   resumeId: string,
@@ -55,7 +55,6 @@ export async function updatePersonalInfo(
 }
 
 // --- WORK EXPERIENCE ACTIONS ---
-
 // --- HELPER TO CLEAN DATES ---
 function cleanResumeData(data: Partial<WorkExperience>) {
   return {
@@ -71,21 +70,25 @@ export async function addWorkExperience(
   data: Partial<WorkExperience>
 ) {
   const supabase = await createSupabaseServerClient();
-
-  // 1. Clean the data (convert "" -> null)
   const cleanedData = cleanResumeData(data);
 
-  const { error } = await supabase.from("work_experience").insert({
-    ...cleanedData,
-    resume_id: resumeId,
-  });
+  // .select().single() to return the created row
+  const { data: newRow, error } = await supabase
+    .from("work_experience")
+    .insert({
+      ...cleanedData,
+      resume_id: resumeId,
+    })
+    .select()
+    .single();
 
   if (error) {
-    console.error("Error adding work experience:", error); // Check server terminal for this log if it fails again
+    console.error("Error adding work experience:", error);
     throw new Error(error.message);
   }
-
   revalidatePath(`/resumes/${resumeId}`);
+  // RETURN THE NEW DATA
+  return newRow;
 }
 
 export async function editWorkExperience(
@@ -136,13 +139,23 @@ export async function addEducation(resumeId: string, data: Partial<Education>) {
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanEducationData(data);
 
-  const { error } = await supabase.from("education").insert({
-    ...cleanedData,
-    resume_id: resumeId,
-  });
+  // Add .select().single() and return data
+  const { data: newRow, error } = await supabase
+    .from("education")
+    .insert({
+      ...cleanedData,
+      resume_id: resumeId,
+    })
+    .select()
+    .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Error adding education:", error);
+    throw new Error(error.message);
+  }
+
   revalidatePath(`/resumes/${resumeId}`);
+  return newRow; // Return the new row
 }
 
 export async function editEducation(
@@ -180,13 +193,20 @@ export async function addSkill(resumeId: string, name: string) {
 
   if (!name.trim()) return;
 
-  const { error } = await supabase.from("skills").insert({
-    name: name.trim(),
-    resume_id: resumeId,
-  });
+  // .select().single() to return the created row
+  const { data: newRow, error } = await supabase
+    .from("skills")
+    .insert({
+      name: name.trim(),
+      resume_id: resumeId,
+    })
+    .select()
+    .single();
 
   if (error) throw new Error(error.message);
+
   revalidatePath(`/resumes/${resumeId}`);
+  return newRow; // Return the new skill
 }
 
 export async function deleteSkill(resumeId: string, skillId: string) {
@@ -204,14 +224,20 @@ export async function addLanguage(resumeId: string, data: Partial<Language>) {
 
   if (!data.name?.trim()) return;
 
-  const { error } = await supabase.from("languages").insert({
-    name: data.name.trim(),
-    proficiency: data.proficiency || "Native", // Default if missing
-    resume_id: resumeId,
-  });
+  // return the new row
+  const { data: newRow, error } = await supabase
+    .from("languages")
+    .insert({
+      name: data.name.trim(),
+      proficiency: data.proficiency || "Native",
+      resume_id: resumeId,
+    })
+    .select()
+    .single();
 
   if (error) throw new Error(error.message);
   revalidatePath(`/resumes/${resumeId}`);
+  return newRow;
 }
 
 export async function editLanguage(
@@ -261,13 +287,19 @@ export async function addCertification(
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanCertificationData(data);
 
-  const { error } = await supabase.from("certifications").insert({
-    ...cleanedData,
-    resume_id: resumeId,
-  });
+  // return the new row
+  const { data: newRow, error } = await supabase
+    .from("certifications")
+    .insert({
+      ...cleanedData,
+      resume_id: resumeId,
+    })
+    .select()
+    .single();
 
   if (error) throw new Error(error.message);
   revalidatePath(`/resumes/${resumeId}`);
+  return newRow;
 }
 
 export async function editCertification(
@@ -315,13 +347,19 @@ export async function addHonorAward(
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanHonorData(data);
 
-  const { error } = await supabase.from("honors_awards").insert({
-    ...cleanedData,
-    resume_id: resumeId,
-  });
+  // return the new row
+  const { data: newRow, error } = await supabase
+    .from("honors_awards")
+    .insert({
+      ...cleanedData,
+      resume_id: resumeId,
+    })
+    .select()
+    .single();
 
   if (error) throw new Error(error.message);
   revalidatePath(`/resumes/${resumeId}`);
+  return newRow;
 }
 
 export async function editHonorAward(
@@ -369,13 +407,19 @@ export async function addExtraCurricular(
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanActivityData(data);
 
-  const { error } = await supabase.from("extra_curricular").insert({
-    ...cleanedData,
-    resume_id: resumeId,
-  });
+  // return the new row
+  const { data: newRow, error } = await supabase
+    .from("extra_curricular")
+    .insert({
+      ...cleanedData,
+      resume_id: resumeId,
+    })
+    .select()
+    .single();
 
   if (error) throw new Error(error.message);
   revalidatePath(`/resumes/${resumeId}`);
+  return newRow;
 }
 
 export async function editExtraCurricular(
@@ -428,13 +472,19 @@ export async function addReference(resumeId: string, data: Partial<Reference>) {
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanReferenceData(data);
 
-  const { error } = await supabase.from("resume_references").insert({
-    ...cleanedData,
-    resume_id: resumeId,
-  });
+  // return the new row
+  const { data: newRow, error } = await supabase
+    .from("resume_references")
+    .insert({
+      ...cleanedData,
+      resume_id: resumeId,
+    })
+    .select()
+    .single();
 
   if (error) throw new Error(error.message);
   revalidatePath(`/resumes/${resumeId}`);
+  return newRow;
 }
 
 export async function editReference(
