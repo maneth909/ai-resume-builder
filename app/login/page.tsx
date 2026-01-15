@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import Button from "@/components/Button";
+import Button from "@/components/button/Button";
 import Link from "next/link";
 
 export default function LoginPage() {

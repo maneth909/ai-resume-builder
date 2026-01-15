@@ -1,7 +1,9 @@
 "use client";
 
 import { supabase } from "@/lib/supabase/client";
+import { Divide } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Button from "./Button";
 
 export default function LogoutButton() {
   const router = useRouter();
@@ -11,5 +13,9 @@ export default function LogoutButton() {
     router.push("/login");
   };
 
-  return <button onClick={logout}>Logout</button>;
+  return (
+    <Button variant="outline" size="sm" onClick={logout} className="gap-2">
+      Logout
+    </Button>
+  );
 }

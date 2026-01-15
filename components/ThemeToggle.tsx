@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Sun, Moon } from "lucide-react";
 
 export default function ThemeToggle() {
   const [isDark, setIsDark] = useState(false);
@@ -23,12 +24,12 @@ export default function ThemeToggle() {
 
   const toggleTheme = () => {
     if (isDark) {
-      // Switch to Light
+      // switch to Light
       document.documentElement.classList.remove("dark");
       localStorage.setItem("theme", "light");
       setIsDark(false);
     } else {
-      // Switch to Dark
+      // switch to Dark
       document.documentElement.classList.add("dark");
       localStorage.setItem("theme", "dark");
       setIsDark(true);
@@ -38,9 +39,9 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="btn-secondary flex items-center gap-2"
+      className="p-2 rounded-md hover:bg-secondary/70 transition-colors"
     >
-      {isDark ? "☀️ Light Mode" : "🌙 Dark Mode"}
+      {isDark ? <Sun size={20} /> : <Moon size={20} />}
     </button>
   );
 }
