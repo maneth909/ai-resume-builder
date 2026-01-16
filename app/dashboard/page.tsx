@@ -115,9 +115,9 @@ export default async function DashboardPage() {
                 <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
               </Link>
 
-              {/* Card Footer: Title & Menu */}
+              {/* card footer: Title & Menu */}
               <div className="p-4 bg-white dark:bg-transparent flex justify-between items-start gap-3 mt-auto">
-                {/* Left: Title & Date */}
+                {/* Title & Date */}
                 <Link
                   href={`/resumes/${resume.id}`}
                   className="block flex-1 min-w-0"
@@ -132,8 +132,6 @@ export default async function DashboardPage() {
                 </Link>
 
                 {/* Right: The Menu Button */}
-                {/* 'relative' context is handled inside the component now, 
-      so we just need a shrink wrapper here */}
                 <div className="flex-shrink-0 -mt-1">
                   <ResumeCardMenu
                     resumeId={resume.id}

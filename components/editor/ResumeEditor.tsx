@@ -7,6 +7,7 @@ import { Resume } from "@/types/resume";
 
 import { ResumeProvider, useResume } from "@/context/ResumeContext";
 import SaveStatus from "@/components/editor/SaveStatus";
+import { updateResumeTitle } from "@/actions/resume";
 
 import PersonalInfoForm from "@/components/form/PersonalInfoForm";
 import WorkExperienceForm from "@/components/form/WorkExperienceForm";
@@ -139,6 +140,21 @@ function EditorContent({ resume }: ResumeEditorProps) {
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
+  // Add this state near the top of EditorContent
+  const [resumeTitle, setResumeTitle] = useState(resume.title);
+
+  // Add this handler
+  const handleTitleBlur = async () => {
+    if (resumeTitle.trim() === "") {
+      setResumeTitle(resume.title); // Revert if empty
+      return;
+    }
+    if (resumeTitle !== resume.title) {
+      // Call server action to update
+      await updateResumeTitle(resume.id, resumeTitle);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-whitecolor dark:bg-background text-tertiary transition-colors overflow-hidden">
       {/* ---------------- APP BAR ---------------- */}
@@ -151,9 +167,14 @@ function EditorContent({ resume }: ResumeEditorProps) {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="font-semibold text-tertiary truncate max-w-50 leading-tight">
-              {resume.title}
-            </h1>
+            {/* EDITABLE TITLE INPUT */}
+            <input
+              value={resumeTitle}
+              onChange={(e) => setResumeTitle(e.target.value)}
+              onBlur={handleTitleBlur}
+              className="font-semibold text-tertiary truncate max-w-[200px] sm:max-w-md bg-transparent border-none focus:ring-0 focus:outline-none p-0 leading-tight hover:underline cursor-text decoration-dashed underline-offset-4 decoration-muted/50"
+              title="Click to rename"
+            />
 
             {/* 2. INSERT STATUS COMPONENT HERE */}
             <div className="h-4 flex items-center">
