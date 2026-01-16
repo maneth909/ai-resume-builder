@@ -22,8 +22,8 @@ export default function ResumeCardMenu({
   resumeId,
   currentTitle,
 }: ResumeCardMenuProps) {
-  const [isOpen, setIsOpen] = useState(false); // Controls the Dropdown
-  const [showRenameModal, setShowRenameModal] = useState(false); // Controls the Modal
+  const [isOpen, setIsOpen] = useState(false); // Controls the dropdown
+  const [showRenameModal, setShowRenameModal] = useState(false); // Controls the modal
   const [title, setTitle] = useState(currentTitle);
   const [isPending, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -64,13 +64,12 @@ export default function ResumeCardMenu({
 
   return (
     <>
-      {/* --- TRIGGER BUTTON --- */}
-      {/* Removed 'absolute' positioning so it respects the flex layout */}
+      {/* --- Trigger button --- */}
       <div className="relative" ref={menuRef}>
         <button
           onClick={(e) => {
             e.preventDefault();
-            e.stopPropagation(); // Stop click from triggering parent Link
+            e.stopPropagation(); // stop click from triggering parent Link
             setIsOpen(!isOpen);
           }}
           className="p-1.5 text-muted hover:text-tertiary hover:bg-secondary/50 rounded-full transition-colors"
@@ -78,27 +77,27 @@ export default function ResumeCardMenu({
           <MoreVertical size={20} />
         </button>
 
-        {/* --- DROPDOWN MENU --- */}
+        {/* --- Dropdown menu --- */}
         {isOpen && (
-          <div className="absolute bottom-full right-0 mb-2 w-48 bg-white dark:bg-background rounded-md shadow-xl border border-border py-1 animate-in fade-in zoom-in-95 duration-200 z-30">
+          <div className="absolute bottom-full right-0 px-1 mb-2 w-32 bg-white dark:bg-background rounded-md shadow-xl border border-border py-1 animate-in fade-in zoom-in-95 duration-200 z-30">
             {/* Edit */}
             <Link
               href={`/resumes/${resumeId}`}
-              className="flex items-center w-full px-4 py-2.5 text-sm text-tertiary hover:bg-secondary/30 transition-colors"
+              className="flex items-center w-full rounded-sm px-4 py-2.5 text-sm text-tertiary hover:bg-secondary/50 transition-colors"
             >
               <FileEdit size={16} className="mr-2" />
               Edit
             </Link>
 
-            {/* Rename Trigger */}
+            {/* rename trigger */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setTitle(currentTitle); // Reset title to current
+                setTitle(currentTitle); // reset title to current
                 setShowRenameModal(true); // Open Modal
-                setIsOpen(false); // Close Dropdown
+                setIsOpen(false); // close Dropdown
               }}
-              className="flex items-center w-full px-4 py-2.5 text-sm text-tertiary hover:bg-secondary/30 transition-colors text-left"
+              className="flex items-center w-full rounded-sm px-4 py-2.5 text-sm text-tertiary hover:bg-secondary/50 transition-colors text-left"
             >
               <Pencil size={16} className="mr-2" />
               Rename
@@ -113,7 +112,7 @@ export default function ResumeCardMenu({
                 handleDelete();
               }}
               disabled={isPending}
-              className="flex items-center w-full px-4 py-2.5 text-sm text-error hover:bg-error/5 transition-colors text-left"
+              className="flex items-center w-full rounded-sm px-4 py-2.5 text-sm text-error hover:bg-error/5 transition-colors text-left"
             >
               <Trash2 size={16} className="mr-2" />
               {isPending ? "Deleting..." : "Delete"}
@@ -122,11 +121,11 @@ export default function ResumeCardMenu({
         )}
       </div>
 
-      {/* --- RENAME MODAL (Pop-up) --- */}
+      {/* --- Rename model (pop-up) --- */}
       {showRenameModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-          onClick={(e) => e.stopPropagation()} // Prevent card click
+          onClick={(e) => e.stopPropagation()} // prevent card click
         >
           <div
             className="bg-white dark:bg-background w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-border"
