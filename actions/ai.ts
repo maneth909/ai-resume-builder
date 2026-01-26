@@ -37,7 +37,6 @@ export async function analyzeResume(resume: Resume, jobDescription?: string) {
   const cleanData = mapResumeData(resume);
   const resumeContext = JSON.stringify(cleanData, null, 2);
 
-  // 3. Dynamic Prompting based on JD presence
   const systemPrompt = `
 You are an ATS (Applicant Tracking System) resume analysis expert.
 
@@ -47,6 +46,13 @@ ${
     ? "Compare the resume JSON against the provided Job Description."
     : "Audit the resume for general ATS best practices and impact."
 }
+
+JOB DESCRIPTION CONSTRAINT (CRITICAL):
+- Treat the Job Description text as the ONLY source of truth for required skills, tools, and keywords.
+- Extract required keywords ONLY from the Job Description text.
+- If a keyword does NOT appear in the Job Description, DO NOT suggest it.
+- Do NOT infer, guess, or generalize technologies beyond what is explicitly stated.
+- Ignore any knowledge about this application, AI systems, language models, or chat completion.
 
 OUTPUT FORMAT RULES:
 - Return RAW HTML only.
@@ -61,27 +67,43 @@ REQUIRED STRUCTURE (follow exactly):
 
 <h4>Critical Fixes</h4>
 <ul>
-  <li>{{3–5 specific, actionable fixes based strictly on the resume content}}</li>
+  <li>{{3–5 high-impact, ATS-relevant fixes based strictly on the resume content}}</li>
 </ul>
 
 <h4>${jobDescription ? "Missing Keywords" : "Keyword Gaps"}</h4>
 <ul>
-  <li>{{List 3–5 relevant keywords that are missing or underused}}</li>
+  <li>{{List 3–5 keywords that explicitly appear in the Job Description but are missing or weak in the resume}}</li>
 </ul>
 
 SCORING RUBRIC:
 - Start from 100 points.
 - Deduct up to:
-  - 40 points for missing or weak job-description keywords (if JD provided).
-  - 30 points for vague or unquantified experience descriptions.
-  - 20 points for missing or underutilized skills.
-  - 10 points for unclear summary or role alignment.
+  - 40 points for missing or weak keywords explicitly listed in the Job Description (if provided).
+  - 30 points for vague, generic, or unquantified experience descriptions.
+  - 20 points for missing or underutilized skills that appear in the Job Description.
+  - 10 points for unclear summary or weak role alignment.
 
-RULES:
-- Base analysis ONLY on the provided data.
-- Do NOT invent experience, tools, or skills.
-- Only suggest keywords found in or clearly implied by the Job Description (if provided).
-- If information is missing, explicitly state it.
+CRITICAL FIX GUIDELINES:
+- Only list fixes that materially impact ATS matching or recruiter evaluation.
+- Do NOT suggest minor stylistic preferences as critical issues.
+- Do NOT suggest inflating, assuming, or fabricating years of experience.
+- If suggesting clarification, frame it as “clarify” or “expand,” not “match requirements.”
+- Do NOT suggest matching or adjusting years of experience to job requirements; only suggest clarifying or better describing existing experience.
+- Do NOT suggest adding years of experience; only suggest clarifying timelines or quantified outcomes already implied by the resume.
+- Do NOT suggest certifications, courses, or credentials unless they are explicitly required or mentioned in the Job Description.
+
+
+STRICT ACCURACY RULES:
+- Only reference text that explicitly exists in the provided resume JSON.
+- Do NOT assume typos, errors, or missing sections unless they are clearly present.
+- If required information is missing, explicitly state that it is missing.
+
+FORBIDDEN:
+- Do NOT mention AI, machine learning, NLP, LLaMA, chat completion, or language models unless they explicitly appear in the Job Description.
+- Do NOT invent tools, frameworks, certifications, responsibilities, or experience.
+
+FINAL RULE:
+- Base all analysis strictly on the provided resume and Job Description text. No external assumptions.
 `;
 
   const userMessage = jobDescription
