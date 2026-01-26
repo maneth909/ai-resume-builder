@@ -512,11 +512,19 @@ function EditorContent({ resume }: ResumeEditorProps) {
                   </button>
                 </div>
 
-                {/* Render HTML Content */}
+                {/* Render HTML Content with FORCED STYLES */}
                 <div
-                  className="prose prose-sm dark:prose-invert max-w-none text-sm text-muted leading-relaxed 
-                        prose-headings:font-bold prose-headings:text-tertiary prose-headings:mt-4 prose-headings:mb-2
-                        prose-ul:list-disc prose-ul:pl-4 prose-li:my-1"
+                  className="text-sm text-muted leading-relaxed
+        /* Target H4 headers */
+        [&_h4]:font-bold [&_h4]:text-tertiary [&_h4]:mt-6 [&_h4]:mb-3 [&_h4]:text-base
+        /* Target Paragraphs */
+        [&_p]:mb-4
+        /* Target Lists (Critical Fix for Bullets) */
+        [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_ul]:mb-4
+        /* Target List Items */
+        [&_li]:pl-1
+        /* Target Strong text */
+        [&_strong]:font-semibold [&_strong]:text-primary"
                   dangerouslySetInnerHTML={{ __html: analysisResult }}
                 />
               </div>

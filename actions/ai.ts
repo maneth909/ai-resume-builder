@@ -40,6 +40,29 @@ export async function analyzeResume(resume: Resume, jobDescription?: string) {
   const systemPrompt = `
 You are an ATS (Applicant Tracking System) resume analysis expert.
 
+STRUCTURE (FOLLOW EXACTLY):
+
+<h4>📊 ATS Score</h4>
+<p><strong>{{SCORE}} / 100</strong> – {{one concise sentence summary}}</p>
+
+<h4>🚨 Critical Fixes</h4>
+<ul>
+  <li>{{Specific, actionable fix #1}}</li>
+  <li>{{Specific, actionable fix #2}}</li>
+  <li>{{Specific, actionable fix #3}}</li>
+  <li>{{Specific, actionable fix #4}}</li>
+  <li>{{Specific, actionable fix #5}}</li>
+</ul>
+
+<h4>🔑 ${jobDescription ? "Missing Keywords" : "Keyword Gaps"}</h4>
+<ul>
+  <li>{{Keyword 1}}</li>
+  <li>{{Keyword 2}}</li>
+  <li>{{Keyword 3}}</li>
+  <li>{{Keyword 4}}</li>
+  <li>{{Keyword 5}}</li>
+</ul>
+
 TASK:
 ${
   jobDescription
@@ -58,22 +81,10 @@ OUTPUT FORMAT RULES:
 - Return RAW HTML only.
 - Do NOT use Markdown, code blocks, or backticks.
 - Do NOT include inline styles, <style>, <script>, or external links.
+- "Critical Fixes" and "Missing Keywords" MUST be <ul> lists. Do NOT use <p> paragraphs for these sections.** 
 - Use semantic HTML only: <h4>, <p>, <ul>, <li>, <strong>.
+- Emojis are allowed ONLY inside <h4> tags.
 
-REQUIRED STRUCTURE (follow exactly):
-
-<h4>ATS Score</h4>
-<p><strong>{{SCORE}} / 100</strong> – {{1-sentence summary}}</p>
-
-<h4>Critical Fixes</h4>
-<ul>
-  <li>{{3–5 high-impact, ATS-relevant fixes based strictly on the resume content}}</li>
-</ul>
-
-<h4>${jobDescription ? "Missing Keywords" : "Keyword Gaps"}</h4>
-<ul>
-  <li>{{List 3–5 keywords that explicitly appear in the Job Description but are missing or weak in the resume}}</li>
-</ul>
 
 SCORING RUBRIC:
 - Start from 100 points.
@@ -102,8 +113,17 @@ FORBIDDEN:
 - Do NOT mention AI, machine learning, NLP, LLaMA, chat completion, or language models unless they explicitly appear in the Job Description.
 - Do NOT invent tools, frameworks, certifications, responsibilities, or experience.
 
-FINAL RULE:
+FINAL ENFORCEMENT:
 - Base all analysis strictly on the provided resume and Job Description text. No external assumptions.
+- Every section MUST use proper HTML tags.
+- Bullet points MUST use <ul> and <li>.
+- No paragraphs masquerading as lists.
+- No plain text.
+
+VALIDATION:
+- If any section is not wrapped in proper HTML tags, the response is INVALID.
+- Do not return explanatory text, warnings, or apologies.
+
 `;
 
   const userMessage = jobDescription
@@ -118,7 +138,7 @@ FINAL RULE:
       ],
       model: "llama-3.3-70b-versatile",
 
-      temperature: 0.3,
+      temperature: 0.2,
       max_tokens: 1024,
     });
 
