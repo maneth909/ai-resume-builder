@@ -9,9 +9,15 @@ import {
   X,
   FileText,
   Loader2,
+  Copy,
+  AlertTriangle, // Added for warning icon
 } from "lucide-react";
 import Link from "next/link";
-import { deleteResume, updateResumeTitle } from "@/actions/resume";
+import {
+  deleteResume,
+  updateResumeTitle,
+  duplicateResume,
+} from "@/actions/resume";
 
 interface ResumeCardMenuProps {
   resumeId: string;
@@ -22,11 +28,19 @@ export default function ResumeCardMenu({
   resumeId,
   currentTitle,
 }: ResumeCardMenuProps) {
-  const [isOpen, setIsOpen] = useState(false); // Controls the dropdown
-  const [showRenameModal, setShowRenameModal] = useState(false); // Controls the modal
+  const [isOpen, setIsOpen] = useState(false);
+
+  // --- MODAL STATES ---
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // NEW STATE
+
   const [title, setTitle] = useState(currentTitle);
-  const [isPending, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // --- SEPARATE TRANSITIONS ---
+  const [isDeletePending, startDeleteTransition] = useTransition();
+  const [isDuplicatePending, startDuplicateTransition] = useTransition();
+  const [isRenamePending, startRenameTransition] = useTransition();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -39,12 +53,28 @@ export default function ResumeCardMenu({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this resume?")) return;
+  // 1. Just open the modal
+  const handleDeleteClick = () => {
+    setIsOpen(false);
+    setShowDeleteModal(true);
+  };
 
-    startTransition(async () => {
+  // 2. Actual delete logic
+  const confirmDelete = async () => {
+    startDeleteTransition(async () => {
       await deleteResume(resumeId);
-      setIsOpen(false);
+      setShowDeleteModal(false);
+    });
+  };
+
+  const handleDuplicate = async () => {
+    startDuplicateTransition(async () => {
+      try {
+        await duplicateResume(resumeId);
+        setIsOpen(false);
+      } catch (error) {
+        alert("Failed to duplicate resume");
+      }
     });
   };
 
@@ -55,7 +85,7 @@ export default function ResumeCardMenu({
       return;
     }
 
-    startTransition(async () => {
+    startRenameTransition(async () => {
       await updateResumeTitle(resumeId, title);
       setShowRenameModal(false);
       setIsOpen(false);
@@ -69,7 +99,7 @@ export default function ResumeCardMenu({
         <button
           onClick={(e) => {
             e.preventDefault();
-            e.stopPropagation(); // stop click from triggering parent Link
+            e.stopPropagation();
             setIsOpen(!isOpen);
           }}
           className="p-1.5 text-muted hover:text-tertiary hover:bg-secondary/50 rounded-full transition-colors"
@@ -89,13 +119,13 @@ export default function ResumeCardMenu({
               Edit
             </Link>
 
-            {/* rename trigger */}
+            {/* Rename Trigger */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setTitle(currentTitle); // reset title to current
-                setShowRenameModal(true); // Open Modal
-                setIsOpen(false); // close Dropdown
+                setTitle(currentTitle);
+                setShowRenameModal(true);
+                setIsOpen(false);
               }}
               className="flex items-center w-full rounded-sm px-4 py-2.5 text-sm text-tertiary hover:bg-secondary/50 transition-colors text-left"
             >
@@ -103,29 +133,45 @@ export default function ResumeCardMenu({
               Rename
             </button>
 
-            <div className="h-px bg-border my-1" />
-
-            {/* Delete */}
+            {/* Duplicate */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleDelete();
+                handleDuplicate();
               }}
-              disabled={isPending}
+              disabled={isDuplicatePending}
+              className="flex items-center w-full px-4 py-2.5 text-sm text-tertiary hover:bg-secondary/30 transition-colors text-left disabled:opacity-50"
+            >
+              {isDuplicatePending ? (
+                <Loader2 size={16} className="mr-2 animate-spin" />
+              ) : (
+                <Copy size={16} className="mr-2" />
+              )}
+              Duplicate
+            </button>
+
+            <div className="h-px bg-border/50 my-1" />
+
+            {/* Delete Trigger */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteClick();
+              }}
               className="flex items-center w-full rounded-sm px-4 py-2.5 text-sm text-error hover:bg-error/5 transition-colors text-left"
             >
               <Trash2 size={16} className="mr-2" />
-              {isPending ? "Deleting..." : "Delete"}
+              Delete
             </button>
           </div>
         )}
       </div>
 
-      {/* --- Rename model (pop-up) --- */}
+      {/* --- Rename Modal --- */}
       {showRenameModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-          onClick={(e) => e.stopPropagation()} // prevent card click
+          onClick={(e) => e.stopPropagation()}
         >
           <div
             className="bg-white dark:bg-background w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-border"
@@ -164,21 +210,75 @@ export default function ResumeCardMenu({
                 <button
                   type="button"
                   onClick={() => setShowRenameModal(false)}
-                  disabled={isPending}
+                  disabled={isRenamePending}
                   className="px-4 py-2 text-sm font-medium text-muted hover:bg-secondary hover:text-tertiary rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isPending || !title.trim()}
+                  disabled={isRenamePending || !title.trim()}
                   className="px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
                 >
-                  {isPending && <Loader2 className="animate-spin" size={16} />}
+                  {isRenamePending && (
+                    <Loader2 className="animate-spin" size={16} />
+                  )}
                   Save Changes
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- DELETE CONFIRMATION MODAL --- */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            className="bg-white dark:bg-background w-full max-w-sm rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-border"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center text-center p-6 pt-8">
+              <div className="p-4 bg-error/10 rounded-full mb-4 text-error ring-8 ring-error/5">
+                <AlertTriangle size={48} />
+              </div>
+
+              <h3 className="font-bold text-xl text-tertiary mb-2">
+                Delete Resume?
+              </h3>
+
+              <p className="text-muted text-sm leading-relaxed px-4">
+                Are you sure you want to delete <br />
+                <strong>"{currentTitle}"</strong>?
+                <br />
+                This action cannot be undone.
+              </p>
+            </div>
+
+            {/* Centered Buttons */}
+            <div className="flex justify-center gap-3 px-6 pb-8">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeletePending}
+                className="px-5 py-2.5 text-sm font-medium text-muted hover:bg-secondary hover:text-tertiary rounded-lg transition-colors border border-transparent hover:border-border"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeletePending}
+                className="px-5 py-2.5 text-sm font-medium bg-error text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-lg shadow-error/20"
+              >
+                {isDeletePending && (
+                  <Loader2 className="animate-spin" size={16} />
+                )}
+                {isDeletePending ? "Deleting..." : "Delete Resume"}
+              </button>
+            </div>
           </div>
         </div>
       )}

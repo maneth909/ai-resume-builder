@@ -37,7 +37,7 @@ export default async function DashboardPage() {
       honors_awards (*),
       extra_curricular (*),
       resume_references (*)
-    `
+    `,
     )
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
