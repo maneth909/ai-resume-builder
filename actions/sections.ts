@@ -49,7 +49,7 @@ async function saveSectionData(tableName: string, resumeId: string, data: any) {
 // update personal info
 export async function updatePersonalInfo(
   resumeId: string,
-  data: Partial<PersonalInfo>
+  data: Partial<PersonalInfo>,
 ) {
   await saveSectionData("personal_info", resumeId, data);
 }
@@ -67,7 +67,7 @@ function cleanResumeData(data: Partial<WorkExperience>) {
 
 export async function addWorkExperience(
   resumeId: string,
-  data: Partial<WorkExperience>
+  data: Partial<WorkExperience>,
 ) {
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanResumeData(data);
@@ -94,7 +94,7 @@ export async function addWorkExperience(
 export async function editWorkExperience(
   resumeId: string,
   experienceId: string,
-  data: Partial<WorkExperience>
+  data: Partial<WorkExperience>,
 ) {
   const supabase = await createSupabaseServerClient();
 
@@ -112,7 +112,7 @@ export async function editWorkExperience(
 
 export async function deleteWorkExperience(
   resumeId: string,
-  experienceId: string
+  experienceId: string,
 ) {
   const supabase = await createSupabaseServerClient();
 
@@ -161,7 +161,7 @@ export async function addEducation(resumeId: string, data: Partial<Education>) {
 export async function editEducation(
   resumeId: string,
   educationId: string,
-  data: Partial<Education>
+  data: Partial<Education>,
 ) {
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanEducationData(data);
@@ -222,9 +222,11 @@ export async function deleteSkill(resumeId: string, skillId: string) {
 export async function addLanguage(resumeId: string, data: Partial<Language>) {
   const supabase = await createSupabaseServerClient();
 
-  if (!data.name?.trim()) return;
+  // Validate input
+  if (!data.name?.trim()) {
+    throw new Error("Language name is required");
+  }
 
-  // return the new row
   const { data: newRow, error } = await supabase
     .from("languages")
     .insert({
@@ -236,6 +238,7 @@ export async function addLanguage(resumeId: string, data: Partial<Language>) {
     .single();
 
   if (error) throw new Error(error.message);
+
   revalidatePath(`/resumes/${resumeId}`);
   return newRow;
 }
@@ -243,7 +246,7 @@ export async function addLanguage(resumeId: string, data: Partial<Language>) {
 export async function editLanguage(
   resumeId: string,
   languageId: string,
-  data: Partial<Language>
+  data: Partial<Language>,
 ) {
   const supabase = await createSupabaseServerClient();
 
@@ -282,7 +285,7 @@ function cleanCertificationData(data: Partial<Certification>) {
 
 export async function addCertification(
   resumeId: string,
-  data: Partial<Certification>
+  data: Partial<Certification>,
 ) {
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanCertificationData(data);
@@ -305,7 +308,7 @@ export async function addCertification(
 export async function editCertification(
   resumeId: string,
   certId: string,
-  data: Partial<Certification>
+  data: Partial<Certification>,
 ) {
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanCertificationData(data);
@@ -342,7 +345,7 @@ function cleanHonorData(data: Partial<HonorAward>) {
 
 export async function addHonorAward(
   resumeId: string,
-  data: Partial<HonorAward>
+  data: Partial<HonorAward>,
 ) {
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanHonorData(data);
@@ -365,7 +368,7 @@ export async function addHonorAward(
 export async function editHonorAward(
   resumeId: string,
   awardId: string,
-  data: Partial<HonorAward>
+  data: Partial<HonorAward>,
 ) {
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanHonorData(data);
@@ -402,7 +405,7 @@ function cleanActivityData(data: Partial<ExtraCurricular>) {
 
 export async function addExtraCurricular(
   resumeId: string,
-  data: Partial<ExtraCurricular>
+  data: Partial<ExtraCurricular>,
 ) {
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanActivityData(data);
@@ -425,7 +428,7 @@ export async function addExtraCurricular(
 export async function editExtraCurricular(
   resumeId: string,
   activityId: string,
-  data: Partial<ExtraCurricular>
+  data: Partial<ExtraCurricular>,
 ) {
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanActivityData(data);
@@ -441,7 +444,7 @@ export async function editExtraCurricular(
 
 export async function deleteExtraCurricular(
   resumeId: string,
-  activityId: string
+  activityId: string,
 ) {
   const supabase = await createSupabaseServerClient();
 
@@ -490,7 +493,7 @@ export async function addReference(resumeId: string, data: Partial<Reference>) {
 export async function editReference(
   resumeId: string,
   refId: string,
-  data: Partial<Reference>
+  data: Partial<Reference>,
 ) {
   const supabase = await createSupabaseServerClient();
   const cleanedData = cleanReferenceData(data);

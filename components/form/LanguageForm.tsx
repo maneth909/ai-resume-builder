@@ -52,25 +52,31 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
         setIsSaving(false);
       }
     },
-    2000
+    2000,
   );
 
   const handleCreate = async () => {
     setIsCreating(true);
     try {
-      // 1. Create with empty name to trigger validation immediately
+      // end "New Language" instead of "" to pass backend validation
       const newLang = await addLanguage(resumeId, {
-        name: "", // Empty string
+        name: "New Language",
         proficiency: "Native",
       });
 
+      // Guard clause in case the server action fails/returns null
+      if (!newLang) throw new Error("Failed to create language record");
+
       updateResumeData("languages", [...resumeData.languages, newLang]);
 
+      // This line ensures the user sees an empty input box to start typing immediately
       setFormData({ name: "", proficiency: "Native" });
+
       setErrors({});
       setCurrentId(newLang.id);
       setIsEditing(true);
     } catch (error) {
+      console.error(error);
       alert("Failed to create language");
     } finally {
       setIsCreating(false);
@@ -100,7 +106,7 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
     setFormData(newData);
 
     const updatedList = resumeData.languages.map((item) =>
-      item.id === currentId ? { ...item, ...newData } : item
+      item.id === currentId ? { ...item, ...newData } : item,
     );
     updateResumeData("languages", updatedList as Language[]);
 
@@ -115,7 +121,7 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
     try {
       await deleteLanguage(resumeId, id);
       const filteredList = resumeData.languages.filter(
-        (item) => item.id !== id
+        (item) => item.id !== id,
       );
       updateResumeData("languages", filteredList);
 

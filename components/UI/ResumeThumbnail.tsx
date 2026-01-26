@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import ResumePreview from "../ResumePreview";
+import ResumePreview from "../editor/ResumePreview";
 import { Resume } from "@/types/resume";
 
 export default function ResumeThumbnail({ resume }: { resume: Resume }) {

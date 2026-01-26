@@ -9,16 +9,20 @@ import { ResumeProvider, useResume } from "@/context/ResumeContext";
 import SaveStatus from "@/components/editor/SaveStatus";
 import { updateResumeTitle } from "@/actions/resume";
 
+import { analyzeResume } from "@/actions/ai";
+import { Loader2, RefreshCcw } from "lucide-react";
+
 import PersonalInfoForm from "@/components/form/PersonalInfoForm";
 import WorkExperienceForm from "@/components/form/WorkExperienceForm";
 import EducationForm from "@/components/form/EducationForm";
-import ResumePreview from "@/components/ResumePreview";
+import ResumePreview from "@/components/editor/ResumePreview";
 import SkillsForm from "@/components/form/SkillsForm";
 import LanguageForm from "@/components/form/LanguageForm";
 import CertificationForm from "@/components/form/CertificationForm";
 import HonorAwardForm from "@/components/form/HonorAwardForm";
 import ExtraCurricularForm from "@/components/form/ExtraCurricularForm";
 import ReferenceForm from "@/components/form/ReferenceForm";
+
 import {
   User,
   Briefcase,
@@ -37,7 +41,7 @@ import {
   Bot,
 } from "lucide-react";
 
-// --- SECTIONS CONFIG ---
+// --- Sections config ---
 type SectionKey =
   | "personal_info"
   | "work_experience"
@@ -54,56 +58,55 @@ const SECTIONS = [
     key: "personal_info",
     label: "Personal Info",
     icon: <User size={18} />,
-    description:
-      "Get started with the basics: your name and contact information.",
+    description: "Who you are and how to reach you.",
   },
   {
     key: "work_experience",
     label: "Experience",
     icon: <Briefcase size={18} />,
-    description: "Highlight your professional journey and key achievements.",
+    description: "Your work story, told in wins.",
   },
   {
     key: "education",
     label: "Education",
     icon: <GraduationCap size={18} />,
-    description: "Showcase your academic background and qualifications.",
+    description: "Where you learned your craft.",
   },
   {
     key: "skills",
     label: "Skills",
     icon: <Wrench size={18} />,
-    description: "List your technical expertise and soft skills.",
+    description: "What you’re great at.",
   },
   {
     key: "languages",
     label: "Languages",
     icon: <Globe size={18} />,
-    description: "Add languages you speak and your proficiency levels.",
+    description: "The languages you speak with confidence.",
   },
   {
     key: "certifications",
     label: "Certifications",
     icon: <FileBadge size={18} />,
-    description: "Add professional certifications, licenses, and workshops.",
+    description: "Proof of your extra expertise.",
   },
   {
     key: "honors_awards",
     label: "Honors",
     icon: <Award size={18} />,
-    description: "Highlight awards and recognitions you have received.",
+    description: "Moments you earned applause.",
   },
   {
     key: "extra_curricular",
     label: "Extra-curriculars",
     icon: <Tent size={18} />,
-    description: "Share your volunteering, clubs, and other activities.",
+    description: "What you do beyond the job.”",
   },
   {
     key: "resume_references",
     label: "References",
     icon: <Users size={18} />,
-    description: "Add professional references who can vouch for your work.",
+    description: "People who’ve got your back.",
   },
 ];
 
@@ -111,24 +114,23 @@ interface ResumeEditorProps {
   resume: Resume;
 }
 
-// 1. Create the Main Content Component
+// main content component
 function EditorContent({ resume }: ResumeEditorProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // 2. GET LIVE DATA FROM CONTEXT
-  // We use this 'resumeData' for the Preview so updates are instant
+  // use 'resumeData' for the Preview so it updates live, no touch DB yet
   const { resumeData } = useResume();
 
-  // 3. Derive state from URL, default to "personal_info" and closed AI
+  // get state from URL, default to personal_info and closed AI
   const activeSection =
     (searchParams.get("section") as SectionKey) || "personal_info";
   const isAIOpen = searchParams.get("ai") === "true";
 
   const activeSectionData = SECTIONS.find((s) => s.key === activeSection);
 
-  // 4. Helper to update URL without reloading
+  // helper to update URL without reloading
   const updateState = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
     if (value) {
@@ -140,18 +142,32 @@ function EditorContent({ resume }: ResumeEditorProps) {
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Add this state near the top of EditorContent
   const [resumeTitle, setResumeTitle] = useState(resume.title);
-
-  // Add this handler
   const handleTitleBlur = async () => {
     if (resumeTitle.trim() === "") {
-      setResumeTitle(resume.title); // Revert if empty
+      setResumeTitle(resume.title); // revert if empty
       return;
     }
     if (resumeTitle !== resume.title) {
-      // Call server action to update
+      // call server action to update
       await updateResumeTitle(resume.id, resumeTitle);
+    }
+  };
+
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [jobDescription, setJobDescription] = useState("");
+
+  const handleRunAnalysis = async () => {
+    setIsAnalyzing(true);
+    try {
+      const result = await analyzeResume(resumeData, jobDescription);
+      setAnalysisResult(result);
+    } catch (error) {
+      console.error(error);
+      alert("AI Analysis failed. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -167,7 +183,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            {/* EDITABLE TITLE INPUT */}
+            {/* editable title input */}
             <input
               value={resumeTitle}
               onChange={(e) => setResumeTitle(e.target.value)}
@@ -176,7 +192,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
               title="Click to rename"
             />
 
-            {/* 2. INSERT STATUS COMPONENT HERE */}
+            {/* status component */}
             <div className="h-4 flex items-center">
               <SaveStatus />
             </div>
@@ -184,11 +200,11 @@ function EditorContent({ resume }: ResumeEditorProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* ... existing buttons ... */}
-          <button className="px-3 py-2 text-sm font-medium text-tertiary bg-transparent border border-border rounded-md hover:bg-secondary flex items-center gap-2 transition-colors">
+          {/* buttons */}
+          {/* <button className="px-3 py-2 text-sm font-medium text-tertiary bg-transparent border border-border rounded-md hover:bg-secondary flex items-center gap-2 transition-colors">
             <Share2 size={16} />
             <span className="hidden sm:inline">Share</span>
-          </button>
+          </button> */}
           <button className="px-3 py-2 text-sm font-medium text-whitecolor dark:text-background bg-tertiary rounded-md hover:opacity-90 flex items-center gap-2 transition-opacity">
             <Download size={16} />
             <span className="hidden sm:inline">Download</span>
@@ -196,9 +212,9 @@ function EditorContent({ resume }: ResumeEditorProps) {
 
           <div className="w-px h-8 bg-border mx-1" />
 
-          {/* AI TOGGLE BUTTON */}
+          {/* AI toggle button */}
           <button
-            // UPDATE: Toggle URL param
+            // toggle URL param
             onClick={() => updateState("ai", isAIOpen ? null : "true")}
             className={`p-2 rounded-md border transition-all ${
               isAIOpen
@@ -212,9 +228,9 @@ function EditorContent({ resume }: ResumeEditorProps) {
         </div>
       </header>
 
-      {/* ---------------- MAIN LAYOUT ---------------- */}
+      {/* ---------------- Main layout ---------------- */}
       <div className="flex flex-1 overflow-hidden">
-        {/* COLUMN 1: SIDEBAR NAVIGATION */}
+        {/* COLUMN 1: side bar navigation */}
         <div
           className={`bg-whitecolor dark:bg-secondary border-r border-border flex flex-col overflow-y-auto shrink-0 transition-[width] duration-300 ease-in-out ${
             isAIOpen ? "w-20 items-center" : "w-51"
@@ -234,7 +250,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
               return (
                 <button
                   key={section.key}
-                  // UPDATE: Set URL param
+                  // set URL param
                   onClick={() => updateState("section", section.key)}
                   className={`flex items-center gap-3 px-3 py-3 rounded-md transition-all group relative ${
                     isAIOpen ? "justify-center w-full" : "w-full text-left"
@@ -278,7 +294,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
         >
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
-              {/* Icon Container */}
+              {/* icon container */}
               <div className="p-2 bg-primary/10 text-primary rounded-lg">
                 {activeSectionData?.icon}
               </div>
@@ -287,7 +303,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
               </h2>
             </div>
 
-            {/* Dynamic Description */}
+            {/* section description */}
             <p className="text-sm text-muted leading-relaxed">
               {activeSectionData?.description}
             </p>
@@ -424,7 +440,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               <span>AI Assistant</span>
             </div>
             <button
-              // UPDATE: Close AI via URL
               onClick={() => updateState("ai", null)}
               className="text-muted hover:text-tertiary"
             >
@@ -433,20 +448,79 @@ function EditorContent({ resume }: ResumeEditorProps) {
           </div>
 
           <div className="flex-1 p-6 overflow-y-auto">
-            <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 mb-6">
-              <h4 className="font-semibold text-sm mb-2 text-tertiary">
-                Analysis Ready
-              </h4>
-              <p className="text-xs text-muted leading-relaxed">
-                I can analyze your resume for keywords, grammar, and formatting
-                issues.
-              </p>
-            </div>
-            <div className="mt-8 text-center">
-              <button className="px-4 py-2 bg-tertiary text-whitecolor text-xs rounded-full hover:opacity-90 transition-opacity">
-                Analyze Resume
-              </button>
-            </div>
+            {/* 1. INITIAL STATE: No analysis yet */}
+            {!analysisResult && !isAnalyzing && (
+              <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+                <div className="bg-primary/5 border border-primary/10 rounded-full p-4">
+                  <Sparkles size={32} className="text-primary" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-tertiary mb-1">
+                    AI Resume Review
+                  </h4>
+                  <p className="text-xs text-muted max-w-[240px] mx-auto">
+                    Get instant feedback on grammar, impact, and ATS
+                    compatibility using Llama 3 power.
+                  </p>
+                </div>
+
+                {/* JD INPUT */}
+                <div className="w-full text-left">
+                  <label className="text-xs font-semibold text-muted ml-1">
+                    Target Job Description (Optional)
+                  </label>
+                  <textarea
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    placeholder="Paste the job description here for a tailored ATS score..."
+                    className="w-full h-32 mt-1 p-3 text-xs bg-whitecolor dark:bg-background border border-border rounded-md focus:ring-1 focus:ring-primary focus:outline-none resize-none placeholder:text-muted/50"
+                  />
+                </div>
+
+                <button
+                  onClick={handleRunAnalysis}
+                  className="px-6 py-2.5 bg-primary text-whitecolor text-sm font-medium rounded-full hover:opacity-90 transition-all shadow-sm shadow-primary/20 w-full"
+                >
+                  {jobDescription ? "Compare & Score" : "General Review"}
+                </button>
+              </div>
+            )}
+
+            {/* 2. LOADING STATE */}
+            {isAnalyzing && (
+              <div className="flex flex-col items-center justify-center h-full space-y-4">
+                <Loader2 className="animate-spin text-primary" size={32} />
+                <p className="text-sm text-muted animate-pulse">
+                  Analyzing your resume...
+                </p>
+              </div>
+            )}
+
+            {/* 3. RESULT STATE */}
+            {analysisResult && !isAnalyzing && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-lg text-tertiary">
+                    Analysis Report
+                  </h3>
+                  <button
+                    onClick={handleRunAnalysis}
+                    className="p-1.5 hover:bg-whitecolor dark:hover:bg-background rounded-full text-muted transition-colors"
+                    title="Re-analyze"
+                  >
+                    <RefreshCcw size={16} />
+                  </button>
+                </div>
+
+                {/* Render HTML Content */}
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none text-sm text-muted leading-relaxed 
+                        prose-headings:font-bold prose-headings:text-tertiary prose-headings:mt-4 prose-headings:mb-2
+                        prose-ul:list-disc prose-ul:pl-4 prose-li:my-1"
+                  dangerouslySetInnerHTML={{ __html: analysisResult }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -16,7 +16,7 @@ interface ResumeContextType {
     data: Resume[K]
   ) => void;
   isLoading: boolean;
-  // --- NEW: Saving Status ---
+  // --- saving status ---
   isSaving: boolean;
   setIsSaving: (isSaving: boolean) => void;
   lastSaved: Date | null;
@@ -35,7 +35,7 @@ export function ResumeProvider({
   const [resumeData, setResumeData] = useState<Resume>(initialData);
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- NEW STATES ---
+  // --- new state ---
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
