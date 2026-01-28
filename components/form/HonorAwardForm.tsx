@@ -53,7 +53,7 @@ export default function HonorAwardForm({ resumeId, initialData }: Props) {
         setIsSaving(false);
       }
     },
-    2000
+    2000,
   );
 
   const handleCreate = async () => {
@@ -116,7 +116,7 @@ export default function HonorAwardForm({ resumeId, initialData }: Props) {
 
     // 3. Update Preview
     const updatedList = resumeData.honors_awards.map((item) =>
-      item.id === currentId ? { ...item, ...newData } : item
+      item.id === currentId ? { ...item, ...newData } : item,
     );
     updateResumeData("honors_awards", updatedList as HonorAward[]);
 
@@ -132,7 +132,7 @@ export default function HonorAwardForm({ resumeId, initialData }: Props) {
     try {
       await deleteHonorAward(resumeId, id);
       const filteredList = resumeData.honors_awards.filter(
-        (item) => item.id !== id
+        (item) => item.id !== id,
       );
       updateResumeData("honors_awards", filteredList);
 
@@ -303,16 +303,6 @@ export default function HonorAwardForm({ resumeId, initialData }: Props) {
                       </p>
                     )}
                   </div>
-
-                  {/* 4. WARNING ICON */}
-                  {isInvalid && (
-                    <div
-                      className="absolute top-4 right-12 text-error animate-pulse"
-                      title="Missing required fields"
-                    >
-                      <AlertCircle size={18} />
-                    </div>
-                  )}
 
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button

@@ -3,15 +3,7 @@
 import { useState } from "react";
 import { Language } from "@/types/resume";
 import { addLanguage, editLanguage, deleteLanguage } from "@/actions/sections";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Loader2,
-  ArrowLeft,
-  Globe,
-  Check,
-} from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ArrowLeft, Globe } from "lucide-react";
 import { useResume } from "@/context/ResumeContext";
 import { useDebouncedCallback } from "use-debounce";
 
@@ -58,21 +50,23 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
   const handleCreate = async () => {
     setIsCreating(true);
     try {
-      // end "New Language" instead of "" to pass backend validation
+      // 1. Create in DB with placeholder
       const newLang = await addLanguage(resumeId, {
         name: "New Language",
         proficiency: "Native",
       });
 
-      // Guard clause in case the server action fails/returns null
       if (!newLang) throw new Error("Failed to create language record");
 
-      updateResumeData("languages", [...resumeData.languages, newLang]);
+      // 2. Override with empty string for UI
+      const uiLang = { ...newLang, name: "" };
+      updateResumeData("languages", [...resumeData.languages, uiLang]);
 
-      // This line ensures the user sees an empty input box to start typing immediately
+      // 3. Reset form data to empty
       setFormData({ name: "", proficiency: "Native" });
 
       setErrors({});
+
       setCurrentId(newLang.id);
       setIsEditing(true);
     } catch (error) {
@@ -84,8 +78,11 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
   };
 
   const handleEdit = (item: Language) => {
+    // If DB has "New Language", treat as empty
+    const cleanName = item.name === "New Language" ? "" : item.name;
+
     setFormData({
-      name: item.name,
+      name: cleanName,
       proficiency: item.proficiency || "Native",
     });
     setErrors({});
@@ -96,6 +93,7 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
   const handleChange = (field: keyof Language, value: string) => {
     if (!currentId) return;
 
+    // Logic from WorkExperience: Error only if user erases the content
     if (field === "name" && !value.trim()) {
       setErrors({ name: "Language name is required" });
     } else {
@@ -134,6 +132,16 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
     }
   };
 
+  const handleGoBack = () => {
+    // If empty name on back, delete it (clean up placeholder)
+    if (!formData.name?.trim() && currentId) {
+      handleDelete(currentId);
+    } else {
+      setIsEditing(false);
+      setCurrentId(null);
+    }
+  };
+
   const inputStyles = `w-full px-3 py-2 bg-transparent border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
     errors.name
       ? "border-error focus:ring-error"
@@ -152,10 +160,7 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                setIsEditing(false);
-                setCurrentId(null);
-              }}
+              onClick={handleGoBack}
               className="p-1 hover:bg-secondary rounded-full text-muted transition-colors"
             >
               <ArrowLeft size={20} />
@@ -253,18 +258,21 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
       ) : (
         <div className="space-y-3">
           {resumeData.languages.map((item) => {
-            // 2. CHECK VALIDITY
-            const isInvalid = !item.name?.trim();
+            // Check invalidity: Empty or Placeholder
+            const isPlaceholder = item.name === "New Language";
+            const isEmpty = !item.name?.trim();
+            const isInvalid = isEmpty || isPlaceholder;
+
+            const displayName = isPlaceholder ? "" : item.name;
 
             return (
               <div
                 key={item.id}
                 onClick={() => handleEdit(item)}
-                // 3. APPLY INVALID STYLES
-                className={`group p-3 border rounded-lg bg-whitecolor dark:bg-secondary/20 transition-all flex items-center justify-between cursor-pointer ${
+                className={`group p-3 border rounded-lg transition-all flex items-center justify-between cursor-pointer ${
                   isInvalid
                     ? "border-error/50 hover:border-error bg-error/5"
-                    : "border-border hover:border-primary/50"
+                    : "border-border hover:border-primary/50 bg-whitecolor dark:bg-secondary/20" // Valid Style
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -272,13 +280,12 @@ export default function LanguageForm({ resumeId, initialData }: Props) {
                     <Globe size={16} />
                   </div>
                   <div>
-                    {/* RED TEXT IF MISSING */}
                     <h4
                       className={`font-semibold text-sm ${
-                        !item.name ? "text-error italic" : "text-tertiary"
+                        isInvalid ? "text-error italic" : "text-tertiary"
                       }`}
                     >
-                      {item.name || "(Missing Language)"}
+                      {displayName || "(Missing Language)"}
                     </h4>
                     <p className="text-xs text-muted">{item.proficiency}</p>
                   </div>

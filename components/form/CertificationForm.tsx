@@ -55,7 +55,7 @@ export default function CertificationForm({ resumeId, initialData }: Props) {
         setIsSaving(false);
       }
     },
-    2000
+    2000,
   );
 
   const handleCreate = async () => {
@@ -122,7 +122,7 @@ export default function CertificationForm({ resumeId, initialData }: Props) {
 
     // 3. Update Preview
     const updatedList = resumeData.certifications.map((item) =>
-      item.id === currentId ? { ...item, ...newData } : item
+      item.id === currentId ? { ...item, ...newData } : item,
     );
     updateResumeData("certifications", updatedList as Certification[]);
 
@@ -138,7 +138,7 @@ export default function CertificationForm({ resumeId, initialData }: Props) {
     try {
       await deleteCertification(resumeId, id);
       const filteredList = resumeData.certifications.filter(
-        (item) => item.id !== id
+        (item) => item.id !== id,
       );
       updateResumeData("certifications", filteredList);
 
@@ -339,16 +339,6 @@ export default function CertificationForm({ resumeId, initialData }: Props) {
                       )}
                     </div>
                   </div>
-
-                  {/* 4. WARNING ICON */}
-                  {isInvalid && (
-                    <div
-                      className="absolute top-4 right-12 text-error animate-pulse"
-                      title="Missing required fields"
-                    >
-                      <AlertCircle size={18} />
-                    </div>
-                  )}
 
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button

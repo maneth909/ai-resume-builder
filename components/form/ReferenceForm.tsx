@@ -56,7 +56,7 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
         setIsSaving(false);
       }
     },
-    2000
+    2000,
   );
 
   const handleCreate = async () => {
@@ -128,7 +128,7 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
 
     // 3. Update Preview
     const updatedList = resumeData.resume_references.map((item) =>
-      item.id === currentId ? { ...item, ...newData } : item
+      item.id === currentId ? { ...item, ...newData } : item,
     );
     updateResumeData("resume_references", updatedList as Reference[]);
 
@@ -144,7 +144,7 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
     try {
       await deleteReference(resumeId, id);
       const filteredList = resumeData.resume_references.filter(
-        (item) => item.id !== id
+        (item) => item.id !== id,
       );
       updateResumeData("resume_references", filteredList);
 
@@ -354,16 +354,6 @@ export default function ReferenceForm({ resumeId, initialData }: Props) {
                       )}
                     </div>
                   </div>
-
-                  {/* 4. WARNING ICON */}
-                  {isInvalid && (
-                    <div
-                      className="absolute top-4 right-12 text-error animate-pulse"
-                      title="Missing required fields"
-                    >
-                      <AlertCircle size={18} />
-                    </div>
-                  )}
 
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button

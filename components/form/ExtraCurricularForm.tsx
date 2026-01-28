@@ -55,7 +55,7 @@ export default function ExtraCurricularForm({ resumeId, initialData }: Props) {
         setIsSaving(false);
       }
     },
-    2000
+    2000,
   );
 
   const handleCreate = async () => {
@@ -106,7 +106,7 @@ export default function ExtraCurricularForm({ resumeId, initialData }: Props) {
 
   const handleChange = (
     field: keyof ExtraCurricular,
-    value: string | boolean
+    value: string | boolean,
   ) => {
     if (!currentId) return;
 
@@ -125,7 +125,7 @@ export default function ExtraCurricularForm({ resumeId, initialData }: Props) {
 
     // 3. Update Preview
     const updatedList = resumeData.extra_curricular.map((item) =>
-      item.id === currentId ? { ...item, ...newData } : item
+      item.id === currentId ? { ...item, ...newData } : item,
     );
     updateResumeData("extra_curricular", updatedList as ExtraCurricular[]);
 
@@ -141,7 +141,7 @@ export default function ExtraCurricularForm({ resumeId, initialData }: Props) {
     try {
       await deleteExtraCurricular(resumeId, id);
       const filteredList = resumeData.extra_curricular.filter(
-        (item) => item.id !== id
+        (item) => item.id !== id,
       );
       updateResumeData("extra_curricular", filteredList);
 
@@ -335,20 +335,10 @@ export default function ExtraCurricularForm({ resumeId, initialData }: Props) {
                       {item.is_current
                         ? " Present"
                         : item.end_date
-                        ? format(new Date(item.end_date), " MMM yyyy")
-                        : ""}
+                          ? format(new Date(item.end_date), " MMM yyyy")
+                          : ""}
                     </p>
                   </div>
-
-                  {/* 4. WARNING ICON */}
-                  {isInvalid && (
-                    <div
-                      className="absolute top-4 right-12 text-error animate-pulse"
-                      title="Missing required fields"
-                    >
-                      <AlertCircle size={18} />
-                    </div>
-                  )}
 
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
