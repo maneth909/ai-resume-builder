@@ -30,12 +30,28 @@ type RenderItemType =
   | "extra_header"
   | "extra_item"
   | "cert_header"
-  | "cert_item";
+  | "cert_item"
+  | "education_header"
+  | "education_item"
+  | "skills_header"
+  | "skills_section"
+  | "languages_header"
+  | "languages_item"
+  | "honors_header"
+  | "honors_item"
+  | "references_header"
+  | "references_item";
 
 interface PageItem {
   type: RenderItemType;
   index: number;
   height?: number;
+  column: "left" | "right";
+}
+
+interface PageContent {
+  left: PageItem[];
+  right: PageItem[];
 }
 
 const SectionHeader = ({
@@ -45,9 +61,12 @@ const SectionHeader = ({
   title: string;
   className?: string;
 }) => (
-  <div className={`flex items-stretch mb-4 ${className}`}>
-    <div className="w-1.5 shrink-0 bg-[#fdf6e3]"></div>
-    <div className="flex-1 px-4 py-2 font-bold text-[11px] uppercase tracking-[0.2em] leading-none flex items-center text-white bg-[#1e2d42]">
+  <div
+    className={`flex items-stretch mt-6 mb-3  ${className}`}
+    // style={{ marginTop: "1.5rem" }}
+  >
+    <div className="w-1.5 shrink-0 bg-[#4292d7]"></div>
+    <div className="px-4 py-2 font-bold text-[11px] uppercase tracking-[0.2em] leading-none flex items-center text-white bg-[#1e2d42]">
       {title}
     </div>
   </div>
@@ -88,7 +107,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
   };
 
   // --- STATE ---
-  const [pages, setPages] = useState<PageItem[][]>([]);
+  const [pages, setPages] = useState<PageContent[]>([{ left: [], right: [] }]);
   const [isCalculated, setIsCalculated] = useState(false);
   const measureRef = useRef<HTMLDivElement>(null);
 
@@ -100,93 +119,214 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
 
     const measureAndPaginate = () => {
       try {
-        const nodes = Array.from(measureRef.current!.children) as HTMLElement[];
+        const leftColumn = measureRef.current!.querySelector(
+          '[data-column="left"]',
+        );
+        const rightColumn = measureRef.current!.querySelector(
+          '[data-column="right"]',
+        );
 
-        if (nodes.length === 0) {
-          setPages([[]]);
+        const leftNodes = leftColumn
+          ? (Array.from(leftColumn.children) as HTMLElement[])
+          : [];
+        const rightNodes = rightColumn
+          ? (Array.from(rightColumn.children) as HTMLElement[])
+          : [];
+
+        console.log(
+          "Left nodes:",
+          leftNodes.length,
+          "Right nodes:",
+          rightNodes.length,
+        );
+
+        if (leftNodes.length === 0 && rightNodes.length === 0) {
+          setPages([{ left: [], right: [] }]);
           setIsCalculated(true);
           return;
         }
 
-        const newPages: PageItem[][] = [];
-        let currentPage: PageItem[] = [];
-        let currentHeight = 0;
+        // Collect items with heights
+        const leftItems: PageItem[] = leftNodes
+          .map((node) => ({
+            type: node.dataset.type as RenderItemType,
+            index: parseInt(node.dataset.index || "0"),
+            height: node.offsetHeight + 10,
+            column: "left" as const,
+          }))
+          .filter((item) => item.height > 20);
+
+        const rightItems: PageItem[] = rightNodes
+          .map((node) => ({
+            type: node.dataset.type as RenderItemType,
+            index: parseInt(node.dataset.index || "0"),
+            height: node.offsetHeight + 15,
+            column: "right" as const,
+          }))
+          .filter((item) => item.height > 20);
+
+        console.log(
+          "Left items:",
+          leftItems.length,
+          "Right items:",
+          rightItems.length,
+        );
+
+        // Paginate
+        const newPages: PageContent[] = [];
+        let leftIdx = 0;
+        let rightIdx = 0;
         let isFirstPage = true;
-        let maxPageHeight = FIRST_PAGE_USABLE_HEIGHT;
 
-        nodes.forEach((node, idx) => {
-          const h = node.offsetHeight;
+        while (leftIdx < leftItems.length || rightIdx < rightItems.length) {
+          const maxHeight = isFirstPage
+            ? FIRST_PAGE_USABLE_HEIGHT
+            : USABLE_PAGE_HEIGHT;
+          const currentPage: PageContent = { left: [], right: [] };
+          let leftHeight = 0;
+          let rightHeight = 0;
 
-          if (h === 0) {
-            return;
-          }
-
-          // Add margin buffer between items
-          const itemHeight = h + 20;
-
-          // Check if this item fits on current page
-          if (currentHeight + itemHeight > maxPageHeight) {
-            // Save current page if it has items
-            if (currentPage.length > 0) {
-              newPages.push([...currentPage]);
+          // Fill left column for this page
+          while (leftIdx < leftItems.length) {
+            const item = leftItems[leftIdx];
+            if (leftHeight + item.height! <= maxHeight) {
+              currentPage.left.push(item);
+              leftHeight += item.height!;
+              leftIdx++;
+            } else {
+              break;
             }
-
-            // Start new page
-            currentPage = [];
-            currentHeight = 0;
-            isFirstPage = false;
-            maxPageHeight = USABLE_PAGE_HEIGHT;
           }
 
-          // Add item to current page
-          const type = node.dataset.type as RenderItemType;
-          const index = parseInt(node.dataset.index || "0");
-          currentPage.push({ type, index, height: itemHeight });
-          currentHeight += itemHeight;
-        });
+          // Fill right column for this page
+          while (rightIdx < rightItems.length) {
+            const item = rightItems[rightIdx];
+            if (rightHeight + item.height! <= maxHeight) {
+              currentPage.right.push(item);
+              rightHeight += item.height!;
+              rightIdx++;
+            } else {
+              break;
+            }
+          }
 
-        // Add the last page if it has items
-        if (currentPage.length > 0) {
-          newPages.push([...currentPage]);
+          newPages.push(currentPage);
+          isFirstPage = false;
         }
 
-        // If no pages were created, create an empty one
         if (newPages.length === 0) {
-          newPages.push([]);
+          newPages.push({ left: [], right: [] });
         }
 
-        console.log(`Created ${newPages.length} pages`);
+        console.log(
+          `Created ${newPages.length} pages:`,
+          newPages.map(
+            (p, i) =>
+              `Page ${i + 1}: ${p.left.length} left items, ${p.right.length} right items`,
+          ),
+        );
+
         setPages(newPages);
         setIsCalculated(true);
       } catch (error) {
         console.error("Error in pagination:", error);
-        setPages([[]]);
+        setPages([{ left: [], right: [] }]);
         setIsCalculated(true);
       }
     };
 
-    const timer = setTimeout(measureAndPaginate, 100);
+    const timer = setTimeout(measureAndPaginate, 150);
 
-    const handleResize = () => {
-      clearTimeout(timer);
-      setTimeout(measureAndPaginate, 50);
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => clearTimeout(timer);
   }, [resume]);
 
   // --- RENDER ITEM HELPER ---
   const renderItemContent = (type: RenderItemType, index: number) => {
     switch (type) {
+      // LEFT COLUMN ITEMS
+      case "education_header":
+        return <SectionHeader title="Education" className="mt-[-3px]" />;
+      case "education_item":
+        const edu = education?.[index];
+        if (!edu) return null;
+        return (
+          <div className="text-[11px] mb-2 pl-1.5">
+            <p className="font-bold uppercase leading-tight mb-1">
+              {edu.school}
+            </p>
+            <p className="italic text-[#98c1d9] mb-1 text-[10px]">
+              {edu.degree}
+            </p>
+            <p className="opacity-75 text-[9px]">
+              {formatDate(edu.start_date)} —{" "}
+              {edu.is_current ? "Present" : formatDate(edu.end_date)}
+            </p>
+          </div>
+        );
+      case "skills_header":
+        return <SectionHeader title="Skills" />;
+      case "skills_section":
+        return (
+          <div className="flex flex-wrap gap-2 pl-1.5 mb-4">
+            {skills?.map((skill) => (
+              <span
+                key={skill.id}
+                className="px-2 py-1 border border-white/20 text-white text-[10px] font-medium uppercase tracking-tight rounded-sm"
+              >
+                {skill.name}
+              </span>
+            ))}
+          </div>
+        );
+      case "languages_header":
+        return <SectionHeader title="Languages" />;
+      case "languages_item":
+        const lang = languages?.[index];
+        if (!lang) return null;
+        return (
+          <div className="flex justify-between items-end border-b border-white/10 pb-1 mb-1 pl-1.5">
+            <span className="text-[11px] font-bold uppercase">{lang.name}</span>
+            <span className="text-[9px] italic text-[#98c1d9]">
+              {lang.proficiency}
+            </span>
+          </div>
+        );
+      case "honors_header":
+        return <SectionHeader title="Honors" />;
+      case "honors_item":
+        const award = honors_awards?.[index];
+        if (!award) return null;
+        return (
+          <div className="text-[11px] mb-1 pl-1.5">
+            <p className="font-bold uppercase leading-tight mb-0.5 text-white">
+              {award.title}
+            </p>
+            <p className="text-[9px] italic text-[#98c1d9] opacity-90">
+              {award.issuer}
+            </p>
+          </div>
+        );
+      case "references_header":
+        return <SectionHeader title="References" />;
+      case "references_item":
+        const ref = resume_references?.[index];
+        if (!ref) return null;
+        return (
+          <div className="text-[10px] mb-1 pl-1.5">
+            <p className="font-bold uppercase text-[#98c1d9]">{ref.name}</p>
+            <p className="italic text-[9px] mb-0.5 opacity-90">
+              {ref.position}
+            </p>
+            <p className="opacity-75 break-words">{ref.email}</p>
+            <p className="opacity-75">{ref.phone}</p>
+          </div>
+        );
+
+      // RIGHT COLUMN ITEMS
       case "summary":
         return (
           <section className="mb-4">
-            <SectionHeader title="Summary" />
+            <SectionHeader title="Summary" className="mt-[-3px]" />
             <p className="text-[11px] leading-relaxed text-gray-600 italic pl-1.5">
               {personal_info?.summary}
             </p>
@@ -198,7 +338,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         const exp = work_experience[index];
         if (!exp) return null;
         return (
-          <div className="border-l-4 border-[#1e2d42] pl-5 relative mb-5">
+          <div className="border-l-4 border-[#1e2d42] pl-5 relative mb-4">
             <div className="flex justify-between items-baseline mb-1">
               <h4 className="font-bold text-[13px] text-[#1e2d42] uppercase tracking-tight">
                 {exp.company}
@@ -247,7 +387,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         const cert = certifications[index];
         if (!cert) return null;
         return (
-          <div className="flex flex-col text-[11px] border-b border-gray-100 pb-2 mb-2">
+          <div className="flex flex-col text-[11px] border-b border-gray-100 pb-1 mb-3">
             <span className="font-bold text-[#1e2d42] uppercase text-[11px]">
               {cert.name}
             </span>
@@ -261,42 +401,91 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
     }
   };
 
-  // Generate all content items
-  const getAllContentItems = (): { type: RenderItemType; index: number }[] => {
-    const items: { type: RenderItemType; index: number }[] = [];
+  // Generate all content items for LEFT and RIGHT columns
+  const getLeftColumnItems = (): {
+    type: RenderItemType;
+    index: number;
+    column: "left";
+  }[] => {
+    const items: { type: RenderItemType; index: number; column: "left" }[] = [];
 
-    if (personal_info?.summary) {
-      items.push({ type: "summary", index: 0 });
-    }
-
-    if (work_experience.length > 0) {
-      items.push({ type: "work_header", index: 0 });
-      work_experience.forEach((_, i) => {
-        items.push({ type: "work_item", index: i });
+    if (education && education.length > 0) {
+      items.push({ type: "education_header", index: 0, column: "left" });
+      education.forEach((_, i) => {
+        items.push({ type: "education_item", index: i, column: "left" });
       });
     }
 
-    if (extra_curricular.length > 0) {
-      items.push({ type: "extra_header", index: 0 });
-      extra_curricular.forEach((_, i) => {
-        items.push({ type: "extra_item", index: i });
+    if (skills && skills.length > 0) {
+      items.push({ type: "skills_header", index: 0, column: "left" });
+      items.push({ type: "skills_section", index: 0, column: "left" });
+    }
+
+    if (languages && languages.length > 0) {
+      items.push({ type: "languages_header", index: 0, column: "left" });
+      languages.forEach((_, i) => {
+        items.push({ type: "languages_item", index: i, column: "left" });
       });
     }
 
-    if (certifications.length > 0) {
-      items.push({ type: "cert_header", index: 0 });
-      certifications.forEach((_, i) => {
-        items.push({ type: "cert_item", index: i });
+    if (honors_awards && honors_awards.length > 0) {
+      items.push({ type: "honors_header", index: 0, column: "left" });
+      honors_awards.forEach((_, i) => {
+        items.push({ type: "honors_item", index: i, column: "left" });
+      });
+    }
+
+    if (resume_references && resume_references.length > 0) {
+      items.push({ type: "references_header", index: 0, column: "left" });
+      resume_references.slice(0, 2).forEach((_, i) => {
+        items.push({ type: "references_item", index: i, column: "left" });
       });
     }
 
     return items;
   };
 
-  const allItems = getAllContentItems();
+  const getRightColumnItems = (): {
+    type: RenderItemType;
+    index: number;
+    column: "right";
+  }[] => {
+    const items: { type: RenderItemType; index: number; column: "right" }[] =
+      [];
+
+    if (personal_info?.summary) {
+      items.push({ type: "summary", index: 0, column: "right" });
+    }
+
+    if (work_experience.length > 0) {
+      items.push({ type: "work_header", index: 0, column: "right" });
+      work_experience.forEach((_, i) => {
+        items.push({ type: "work_item", index: i, column: "right" });
+      });
+    }
+
+    if (extra_curricular.length > 0) {
+      items.push({ type: "extra_header", index: 0, column: "right" });
+      extra_curricular.forEach((_, i) => {
+        items.push({ type: "extra_item", index: i, column: "right" });
+      });
+    }
+
+    if (certifications.length > 0) {
+      items.push({ type: "cert_header", index: 0, column: "right" });
+      certifications.forEach((_, i) => {
+        items.push({ type: "cert_item", index: i, column: "right" });
+      });
+    }
+
+    return items;
+  };
+
+  const leftItems = getLeftColumnItems();
+  const rightItems = getRightColumnItems();
 
   // If no content at all, show a placeholder
-  if (allItems.length === 0) {
+  if (leftItems.length === 0 && rightItems.length === 0) {
     return (
       <ResumePage>
         <div className="flex items-center justify-center h-full text-gray-300 uppercase tracking-widest font-bold">
@@ -312,23 +501,47 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
       <div
         ref={measureRef}
         className="fixed top-0 left-[-9999px] opacity-0 pointer-events-none z-[-1]"
-        style={{
-          width: "calc(210mm * 0.68)", // 68% of page width for main content
-          padding: "2rem",
-          paddingTop: "1.5rem",
-        }}
         aria-hidden="true"
       >
-        {allItems.map((item, idx) => (
-          <div
-            key={`measure-${item.type}-${item.index}`}
-            data-type={item.type}
-            data-index={item.index}
-            className="mb-5"
-          >
-            {renderItemContent(item.type, item.index)}
-          </div>
-        ))}
+        {/* Left column measurer */}
+        <div
+          data-column="left"
+          style={{
+            width: "calc(210mm * 0.32)",
+            padding: "1.5rem",
+            paddingTop: "1.5rem",
+          }}
+        >
+          {leftItems.map((item, idx) => (
+            <div
+              key={`measure-left-${item.type}-${item.index}`}
+              data-type={item.type}
+              data-index={item.index}
+            >
+              {renderItemContent(item.type, item.index)}
+            </div>
+          ))}
+        </div>
+
+        {/* Right column measurer */}
+        <div
+          data-column="right"
+          style={{
+            width: "calc(210mm * 0.68)",
+            padding: "2rem",
+            paddingTop: "1.5rem",
+          }}
+        >
+          {rightItems.map((item, idx) => (
+            <div
+              key={`measure-right-${item.type}-${item.index}`}
+              data-type={item.type}
+              data-index={item.index}
+            >
+              {renderItemContent(item.type, item.index)}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* --- VISIBLE PAGES --- */}
@@ -340,7 +553,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
           </div>
         </ResumePage>
       ) : (
-        pages.map((pageItems, pageIndex) => {
+        pages.map((page, pageIndex) => {
           const isFirstPage = pageIndex === 0;
 
           return (
@@ -401,124 +614,30 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
               <div className="flex flex-row flex-1 overflow-hidden">
                 {/* LEFT SIDEBAR */}
                 <aside
-                  className="w-[32%] p-6 pt-6 flex flex-col gap-6 text-white shrink-0 overflow-hidden"
+                  className="w-[32%] p-6 pt-6 flex flex-col text-white shrink-0 overflow-hidden"
                   style={{ backgroundColor: COLORS.sidebar }}
                 >
-                  {/* Only show sidebar content on first page */}
-                  {isFirstPage && (
-                    <>
-                      {education && education.length > 0 && (
-                        <section>
-                          <SectionHeader title="Education" />
-                          <div className="space-y-4 pl-1.5">
-                            {education.map((edu) => (
-                              <div key={edu.id} className="text-[11px]">
-                                <p className="font-bold uppercase leading-tight mb-1">
-                                  {edu.school}
-                                </p>
-                                <p className="italic text-[#98c1d9] mb-1 text-[10px]">
-                                  {edu.degree}
-                                </p>
-                                <p className="opacity-75 text-[9px]">
-                                  {formatDate(edu.start_date)} —{" "}
-                                  {edu.is_current
-                                    ? "Present"
-                                    : formatDate(edu.end_date)}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      )}
-
-                      {skills && skills.length > 0 && (
-                        <section>
-                          <SectionHeader title="Skills" />
-                          <div className="flex flex-wrap gap-2 pl-1.5">
-                            {skills.map((skill) => (
-                              <span
-                                key={skill.id}
-                                className="px-2 py-1 border border-white/20 text-white text-[10px] font-medium uppercase tracking-tight rounded-sm"
-                              >
-                                {skill.name}
-                              </span>
-                            ))}
-                          </div>
-                        </section>
-                      )}
-
-                      {languages && languages.length > 0 && (
-                        <section>
-                          <SectionHeader title="Languages" />
-                          <div className="space-y-2 pl-1.5">
-                            {languages.map((lang) => (
-                              <div
-                                key={lang.id}
-                                className="flex justify-between items-end border-b border-white/10 pb-1"
-                              >
-                                <span className="text-[11px] font-bold uppercase">
-                                  {lang.name}
-                                </span>
-                                <span className="text-[9px] italic text-[#98c1d9]">
-                                  {lang.proficiency}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      )}
-
-                      {honors_awards && honors_awards.length > 0 && (
-                        <section>
-                          <SectionHeader title="Honors" />
-                          <div className="space-y-3 pl-1.5">
-                            {honors_awards.map((award) => (
-                              <div key={award.id} className="text-[11px]">
-                                <p className="font-bold uppercase leading-tight mb-0.5 text-white">
-                                  {award.title}
-                                </p>
-                                <p className="text-[9px] italic text-[#98c1d9] opacity-90">
-                                  {award.issuer}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      )}
-
-                      {resume_references && resume_references.length > 0 && (
-                        <section className="mt-auto">
-                          <SectionHeader title="References" />
-                          <div className="space-y-3 pl-1.5">
-                            {resume_references.slice(0, 2).map((ref) => (
-                              <div key={ref.id} className="text-[10px]">
-                                <p className="font-bold uppercase text-[#98c1d9]">
-                                  {ref.name}
-                                </p>
-                                <p className="italic text-[9px] mb-0.5 opacity-90">
-                                  {ref.position}
-                                </p>
-                                <p className="opacity-75 break-words">
-                                  {ref.email}
-                                </p>
-                                <p className="opacity-75">{ref.phone}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      )}
-                    </>
-                  )}
+                  {page.left &&
+                    page.left.map((item, i) => (
+                      <div
+                        key={`left-${pageIndex}-${item.type}-${item.index}-${i}`}
+                      >
+                        {renderItemContent(item.type, item.index)}
+                      </div>
+                    ))}
                 </aside>
 
                 {/* RIGHT MAIN COLUMN */}
                 <main className="flex-1 p-8 pt-6 overflow-hidden">
-                  <div className="space-y-5">
-                    {pageItems.map((item, i) => (
-                      <div key={`${pageIndex}-${item.type}-${item.index}`}>
-                        {renderItemContent(item.type, item.index)}
-                      </div>
-                    ))}
+                  <div>
+                    {page.right &&
+                      page.right.map((item, i) => (
+                        <div
+                          key={`right-${pageIndex}-${item.type}-${item.index}-${i}`}
+                        >
+                          {renderItemContent(item.type, item.index)}
+                        </div>
+                      ))}
                   </div>
                 </main>
               </div>

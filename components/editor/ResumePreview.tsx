@@ -103,7 +103,7 @@ export default function ResumePreview({
       */}
       <div
         id="resume-preview"
-        className="bg-white w-[210mm] min-h-[297mm] shadow-2xl overflow-hidden print:shadow-none print:m-0"
+        className="bg-white/50 w-[210mm] min-h-[297mm] overflow-hidden print:shadow-none print:m-0"
       >
         <CurrentTemplate resume={resume} />
       </div>
