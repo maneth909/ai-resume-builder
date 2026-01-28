@@ -171,6 +171,11 @@ function EditorContent({ resume }: ResumeEditorProps) {
     }
   };
 
+  const handleDownload = () => {
+    // This triggers the browser's native print dialog
+    // The CSS @media print rules in globals.css will ensure only the resume is printed
+    window.print();
+  };
   return (
     <div className="flex flex-col h-screen bg-whitecolor dark:bg-background text-tertiary transition-colors overflow-hidden">
       {/* ---------------- APP BAR ---------------- */}
@@ -205,7 +210,10 @@ function EditorContent({ resume }: ResumeEditorProps) {
             <Share2 size={16} />
             <span className="hidden sm:inline">Share</span>
           </button> */}
-          <button className="px-3 py-2 text-sm font-medium text-whitecolor dark:text-background bg-tertiary rounded-md hover:opacity-90 flex items-center gap-2 transition-opacity">
+          <button
+            onClick={handleDownload}
+            className="px-3 py-2 text-sm font-medium text-whitecolor dark:text-background bg-tertiary rounded-md hover:opacity-90 flex items-center gap-2 transition-opacity"
+          >
             <Download size={16} />
             <span className="hidden sm:inline">Download</span>
           </button>

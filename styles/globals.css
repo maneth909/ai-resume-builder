@@ -47,7 +47,9 @@ body {
   font-family: var(--font-sans);
   background-color: var(--color-background);
   color: var(--color-blackcolor);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 /* Auto-switch text color in dark mode */
@@ -81,5 +83,55 @@ body {
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--color-border) transparent;
+  }
+}
+
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+
+  body {
+    background: white;
+  }
+
+  /* Hide the Editor Interface */
+  header,
+  aside,
+  button,
+  .ai-sidebar,
+  .scrollbar-hide {
+    display: none !important;
+  }
+
+  /* Reset the container constraints */
+  .flex,
+  .h-screen,
+  .overflow-hidden {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important; /* Resets flex layouts that might break printing */
+  }
+
+  /* Target the Resume Preview specifically */
+  #resume-preview {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    /* Remove the visual gray gap we added for the editor */
+    background: white !important;
+    min-height: 0 !important;
+  }
+
+  /* Ensure background colors print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
