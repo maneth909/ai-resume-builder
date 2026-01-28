@@ -1,6 +1,7 @@
 export interface Resume {
   id: string;
   title: string;
+  template_style?: string;
   user_id: string;
   created_at: string;
   updated_at: string;

@@ -417,14 +417,14 @@ function EditorContent({ resume }: ResumeEditorProps) {
         </div>
 
         {/* COLUMN 3: PREVIEW AREA */}
-        <div className="flex-1 bg-secondary overflow-y-auto p-8 flex justify-center transition-all duration-300 ease-in-out">
+        <div className="flex-1 bg-secondary overflow-y-auto p-8 flex justify-center transition-all duration-300 ease-in-out pt-16">
           <div
             className={`origin-top shadow-2xl transition-all duration-300 ${
               isAIOpen ? "scale-[0.75] xl:scale-[0.85]" : "scale-[0.85]"
             }`}
           >
             {/* 3. USE LIVE DATA FROM CONTEXT */}
-            <ResumePreview resume={resumeData} />
+            <ResumePreview resume={resumeData} enableThemeSwitching={true} />
           </div>
         </div>
 

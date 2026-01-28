@@ -29,6 +29,26 @@ export async function createResume(title: string) {
   return data.id;
 }
 
+// update resume template style
+export async function updateResumeTemplate(resumeId: string, template: string) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("User not authenticated");
+
+  const { error } = await supabase
+    .from("resumes")
+    .update({ template_style: template, updated_at: new Date().toISOString() })
+    .eq("id", resumeId)
+    .eq("user_id", user.id);
+
+  if (error) throw new Error("Failed to update template");
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/resumes/${resumeId}`);
+}
+
 // delete resume
 export async function deleteResume(resumeId: string) {
   const supabase = await createSupabaseServerClient();

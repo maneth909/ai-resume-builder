@@ -46,7 +46,7 @@ export default function ResumeThumbnail({ resume }: { resume: Resume }) {
         className="absolute top-0 left-0 w-[210mm] min-h-[297mm] origin-top-left pointer-events-none select-none shadow-sm"
         style={{ transform: `scale(${scale})` }}
       >
-        <ResumePreview resume={resume} />
+        <ResumePreview resume={resume} enableThemeSwitching={false} />
       </div>
 
       {/* gradient fade at bottom to handle cutoff gracefully */}

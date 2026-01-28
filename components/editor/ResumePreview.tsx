@@ -1,246 +1,112 @@
+"use client";
+
+import { useState, useTransition } from "react";
 import { Resume } from "@/types/resume";
-import { format } from "date-fns";
-import { Mail, Phone } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LayoutTemplate,
+  Loader2,
+} from "lucide-react";
+import { updateResumeTemplate } from "@/actions/resume";
 
-export default function ResumePreview({ resume }: { resume: Resume }) {
-  const {
-    personal_info,
-    work_experience,
-    education,
-    skills,
-    languages,
-    certifications,
-    honors_awards,
-    extra_curricular,
-    resume_references,
-  } = resume;
+// Import Templates
+import ModernTemplate from "@/components/templates/ModernTemplate";
+import ProfessionalTemplate from "@/components/templates/ProfessionalTemplate";
+import MinimalTemplate from "@/components/templates/MinimalTemplate";
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "";
-    // Check if date is valid before formatting to prevent errors while typing
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "";
-    return format(date, "MMM yyyy");
+// Template Config
+const TEMPLATES = [
+  { id: "modern", name: "Modern", component: ModernTemplate },
+  { id: "professional", name: "Professional", component: ProfessionalTemplate },
+  { id: "minimal", name: "Minimal", component: MinimalTemplate },
+];
+
+interface Props {
+  resume: Resume;
+  enableThemeSwitching?: boolean; // Only enable in editor, disable in thumbnail
+}
+
+export default function ResumePreview({
+  resume,
+  enableThemeSwitching = false,
+}: Props) {
+  // 1. Determine current index based on DB value or default to 0
+  const initialIndex = TEMPLATES.findIndex(
+    (t) => t.id === (resume.template_style || "modern"),
+  );
+  const [currentIndex, setCurrentIndex] = useState(
+    initialIndex !== -1 ? initialIndex : 0,
+  );
+  const [isPending, startTransition] = useTransition();
+
+  const CurrentTemplate = TEMPLATES[currentIndex].component;
+
+  // 2. Handle Switching
+  const handleSwitch = (direction: "prev" | "next") => {
+    let newIndex = 0;
+    if (direction === "next") {
+      newIndex = (currentIndex + 1) % TEMPLATES.length;
+    } else {
+      newIndex = (currentIndex - 1 + TEMPLATES.length) % TEMPLATES.length;
+    }
+
+    // Optimistic UI update
+    setCurrentIndex(newIndex);
+
+    // Save to DB
+    startTransition(async () => {
+      await updateResumeTemplate(resume.id, TEMPLATES[newIndex].id);
+    });
   };
 
   return (
-    <div
-      id="resume-preview"
-      className="bg-whitecolor dark:bg-background w-[210mm] min-h-[297mm] p-10 mx-auto text-sm leading-relaxed text-muted transition-colors print:bg-white print:text-black print:shadow-none print:m-0"
-    >
-      <header className="border-b-2 border-tertiary pb-6 mb-6">
-        <h1 className="text-3xl font-bold uppercase tracking-wide text-tertiary mb-2">
-          {personal_info?.full_name || "Your Name"}
-        </h1>
-        <div className="flex flex-wrap gap-3 text-sm text-muted">
-          {personal_info?.email && <span>{personal_info.email}</span>}
-          {personal_info?.phone && <span>• {personal_info.phone}</span>}
-          {personal_info?.location && <span>• {personal_info.location}</span>}
+    <div className="relative group">
+      {/* --- FLOATING SWITCHER (Only visible if enabled) --- */}
+      {enableThemeSwitching && (
+        <div className="absolute -top-16 left-0 right-0 flex justify-center items-center gap-4 z-50 mt-3 opacity-100 transition-opacity print:hidden">
+          <button
+            type="button" // CRITICAL: Prevent form submission
+            onClick={() => handleSwitch("prev")}
+            disabled={isPending}
+            className="p-2 bg-white dark:bg-secondary border border-border rounded-full shadow-sm hover:scale-110 transition-transform text-tertiary"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-white dark:bg-secondary border border-border rounded-full shadow-sm">
+            {isPending ? (
+              <Loader2 className="animate-spin" size={14} />
+            ) : (
+              <LayoutTemplate size={14} className="text-primary" />
+            )}
+            <span className="text-sm font-semibold text-tertiary w-24 text-center select-none">
+              {TEMPLATES[currentIndex].name}
+            </span>
+          </div>
+
+          <button
+            type="button" // CRITICAL: Prevent form submission
+            onClick={() => handleSwitch("next")}
+            disabled={isPending}
+            className="p-2 bg-white dark:bg-secondary border border-border rounded-full shadow-sm hover:scale-110 transition-transform text-tertiary"
+          >
+            <ChevronRight size={16} />
+          </button>
         </div>
-      </header>
-
-      {/* --- SUMMARY --- */}
-      {personal_info?.summary && (
-        <section className="mb-6 break-inside-avoid">
-          <h3 className="font-bold text-tertiary uppercase mb-2 border-b border-border pb-1">
-            Professional Summary
-          </h3>
-          <p className="text-muted whitespace-pre-line">
-            {personal_info.summary}
-          </p>
-        </section>
       )}
 
-      {/* --- EXPERIENCE --- */}
-      {work_experience && work_experience.length > 0 && (
-        <section className="mb-6">
-          <h3 className="font-bold text-tertiary uppercase mb-3 border-b border-border pb-1">
-            Experience
-          </h3>
-          <div className="space-y-4">
-            {work_experience.map((exp) => (
-              <div key={exp.id} className="break-inside-avoid">
-                <div className="flex justify-between font-semibold text-tertiary">
-                  <h4>{exp.job_title}</h4>
-                  <span className="text-xs text-muted font-normal">
-                    {formatDate(exp.start_date)} -{" "}
-                    {exp.is_current ? "Present" : formatDate(exp.end_date)}
-                  </span>
-                </div>
-                <div className="text-muted italic text-xs mb-1">
-                  {exp.company}
-                  {exp.location ? `, ${exp.location}` : ""}
-                </div>
-                <p className="whitespace-pre-line text-xs text-muted">
-                  {exp.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* --- EDUCATION --- */}
-      {education && education.length > 0 && (
-        <section className="mb-6">
-          <h3 className="font-bold text-tertiary uppercase mb-3 border-b border-border pb-1">
-            Education
-          </h3>
-          <div className="space-y-3">
-            {education.map((edu) => (
-              <div key={edu.id} className="break-inside-avoid">
-                <div className="flex justify-between font-semibold text-tertiary">
-                  <h4>{edu.school}</h4>
-                  <span className="text-xs text-muted font-normal">
-                    {formatDate(edu.start_date)} -{" "}
-                    {edu.is_current ? "Present" : formatDate(edu.end_date)}
-                  </span>
-                </div>
-                <div className="text-sm text-muted">
-                  {edu.degree}{" "}
-                  {edu.field_of_study ? `in ${edu.field_of_study}` : ""}
-                </div>
-                {edu.description && (
-                  <p className="text-xs text-muted mt-1">{edu.description}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* --- SKILLS --- */}
-      {skills && skills.length > 0 && (
-        <section className="mb-6 break-inside-avoid">
-          <h3 className="font-bold text-tertiary uppercase mb-2 border-b border-border pb-1">
-            Skills
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {skills.map((skill) => (
-              <span
-                key={skill.id}
-                className="bg-secondary text-tertiary px-2 py-1 rounded text-xs font-medium print:bg-gray-100 print:text-black"
-              >
-                {skill.name}
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* --- EXTRA CURRICULAR (NEW) --- */}
-      {extra_curricular && extra_curricular.length > 0 && (
-        <section className="mb-6">
-          <h3 className="font-bold text-tertiary uppercase mb-3 border-b border-border pb-1">
-            Volunteering & Activities
-          </h3>
-          <div className="space-y-3">
-            {extra_curricular.map((activity) => (
-              <div key={activity.id} className="break-inside-avoid">
-                <div className="flex justify-between font-semibold text-tertiary">
-                  <h4>{activity.title}</h4>
-                  <span className="text-xs text-muted font-normal">
-                    {formatDate(activity.start_date)} -{" "}
-                    {activity.is_current
-                      ? "Present"
-                      : formatDate(activity.end_date)}
-                  </span>
-                </div>
-                <div className="text-muted italic text-xs mb-1">
-                  {activity.organization}
-                  {/* Note: We removed location from ExtraCurricular type, so we don't render it here */}
-                </div>
-                {activity.description && (
-                  <p className="whitespace-pre-line text-xs text-muted">
-                    {activity.description}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* --- LANGUAGES --- */}
-      {languages && languages.length > 0 && (
-        <section className="mb-6 break-inside-avoid">
-          <h3 className="font-bold text-tertiary uppercase mb-2 border-b border-border pb-1">
-            Languages
-          </h3>
-          <ul className="list-disc list-inside text-sm text-muted">
-            {languages.map((lang) => (
-              <li key={lang.id}>
-                <span className="font-medium text-tertiary">{lang.name}</span>
-                {lang.proficiency && (
-                  <span className="text-muted text-xs ml-1">
-                    ({lang.proficiency})
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* --- AWARDS & CERTIFICATIONS --- */}
-      {(certifications?.length > 0 || honors_awards?.length > 0) && (
-        <section className="mb-6 break-inside-avoid">
-          <h3 className="font-bold text-tertiary uppercase mb-2 border-b border-border pb-1">
-            Certifications & Awards
-          </h3>
-          <div className="space-y-2 text-muted">
-            {certifications?.map((cert) => (
-              <div key={cert.id} className="text-sm">
-                <span className="font-semibold text-tertiary">{cert.name}</span>{" "}
-                — {cert.issuer}{" "}
-                {cert.issue_date && `(${formatDate(cert.issue_date)})`}
-              </div>
-            ))}
-            {honors_awards?.map((award) => (
-              <div key={award.id} className="text-sm">
-                <span className="font-semibold text-tertiary">
-                  {award.title}
-                </span>{" "}
-                — {award.issuer}{" "}
-                {award.award_date && `(${formatDate(award.award_date)})`}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* --- REFERENCES --- */}
-      {resume_references && resume_references.length > 0 && (
-        <section className="mb-6 break-inside-avoid">
-          <h3 className="font-bold text-tertiary uppercase mb-3 border-b border-border pb-1">
-            References
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {resume_references.map((ref) => (
-              <div key={ref.id} className="text-sm">
-                <div className="font-semibold text-tertiary">{ref.name}</div>
-                <div className="text-xs text-muted">{ref.position}</div>
-                <div className="text-xs text-muted italic mb-1">
-                  {ref.organization}
-                </div>
-
-                <div className="flex flex-col gap-0.5 text-xs text-muted">
-                  {ref.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail size={10} /> {ref.email}
-                    </div>
-                  )}
-                  {ref.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone size={10} /> {ref.phone}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* --- THE ACTUAL RESUME --- */}
+      {/* IMPORTANT: We explicitly set ID="resume-preview" here.
+          The templates act as inner content, but the printer/downloader 
+          usually targets this ID to capture the page. 
+      */}
+      <div
+        id="resume-preview"
+        className="bg-white w-[210mm] min-h-[297mm] shadow-2xl overflow-hidden print:shadow-none print:m-0"
+      >
+        <CurrentTemplate resume={resume} />
+      </div>
     </div>
   );
 }
