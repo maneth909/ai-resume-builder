@@ -445,7 +445,7 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
                       {/* Left: Name & Title */}
                       <div className="max-w-[60%]">
                         <h1
-                          className="text-4xl uppercase tracking-widest mb-2"
+                          className="text-4xl tracking-widest mb-2"
                           style={{ color: COLORS.accent }}
                         >
                           {personal_info?.full_name || "YOUR NAME"}
@@ -476,10 +476,12 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
                             <Mail size={10} className="text-[#1e5c76]" />
                           </div>
                         )}
-                        <div className="flex items-center justify-end gap-2">
-                          <span>linkedin.com/in/user</span>
-                          <Linkedin size={10} className="text-[#1e5c76]" />
-                        </div>
+                        {personal_info?.linkedin && (
+                          <div className="flex items-center justify-end gap-2">
+                            <span>{personal_info.linkedin}</span>
+                            <Linkedin size={10} className="text-[#1e5c76]" />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </header>

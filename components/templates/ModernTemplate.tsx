@@ -572,7 +572,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
                 >
                   <div className="flex flex-wrap justify-between items-end gap-6">
                     <div className="max-w-[60%]">
-                      <h1 className="text-5xl font-bold tracking-tight uppercase mb-2 leading-none break-words">
+                      <h1 className="text-5xl font-bold tracking-tight mb-2 leading-none break-words">
                         {personal_info?.full_name || "YOUR NAME"}
                       </h1>
                       <p
@@ -602,10 +602,12 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
                           <Mail size={11} className="text-[#98c1d9]" />
                         </span>
                       )}
-                      <span className="flex items-center justify-end gap-2">
-                        linkedin.com/in/user{" "}
-                        <Linkedin size={11} className="text-[#98c1d9]" />
-                      </span>
+                      {personal_info?.linkedin && (
+                        <span className="flex items-center justify-end gap-2">
+                          {personal_info.linkedin}
+                          <Linkedin size={11} className="text-[#98c1d9]" />
+                        </span>
+                      )}
                     </div>
                   </div>
                 </header>

@@ -21,6 +21,7 @@ export interface Resume {
 export interface PersonalInfo {
   id: string;
   full_name: string | null;
+  role?: string | null;
   email: string | null;
   phone: string | null;
   location: string | null;

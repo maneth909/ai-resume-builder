@@ -17,10 +17,11 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
   const [formData, setFormData] = useState<Partial<PersonalInfo>>(
     initialData || {
       full_name: "",
+      role: "", // 1. Initialize new field
       email: "",
       phone: "",
       location: "",
-      linkedin: "", // 1. Initialize new field
+      linkedin: "",
       summary: "",
     },
   );
@@ -59,7 +60,6 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
     } else if (name === "location" && !value.trim()) {
       newError = "Location is required";
     }
-    // No validation needed for linkedin since it is optional
 
     // Update Error State
     if (newError) {
@@ -114,6 +114,18 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
           )}
         </div>
 
+        {/* 2. New Role Field */}
+        <div>
+          <label className={labelStyles}>Job Title / Role</label>
+          <input
+            name="role"
+            value={formData.role || ""}
+            onChange={handleChange}
+            placeholder="e.g. Frontend Developer"
+            className={getInputStyles("role")}
+          />
+        </div>
+
         {/* Email & Phone Row */}
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -165,7 +177,7 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
           )}
         </div>
 
-        {/* 2. New LinkedIn Field */}
+        {/* LinkedIn */}
         <div>
           <label className={labelStyles}>
             LinkedIn{" "}
