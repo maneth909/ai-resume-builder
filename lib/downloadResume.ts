@@ -47,12 +47,14 @@ export async function downloadResumeAsPDF(resumeTitle: string = "Resume") {
 
     console.log(`Found ${pages.length} pages to print`);
 
-    // Style each page for proper printing
+    // Style each page for proper printing - FIXED to maintain full height
     pages.forEach((page, index) => {
       const pageEl = page as HTMLElement;
       pageEl.style.cssText = `
         width: 210mm !important;
         height: 297mm !important;
+        min-height: 297mm !important;
+        max-height: 297mm !important;
         margin: 0 !important;
         padding: 0 !important;
         transform: none !important;
@@ -62,6 +64,7 @@ export async function downloadResumeAsPDF(resumeTitle: string = "Resume") {
         break-after: ${index < pages.length - 1 ? "page" : "auto"} !important;
         display: block !important;
         overflow: hidden !important;
+        box-sizing: border-box !important;
       `;
 
       // Remove any scaling from child elements
@@ -133,6 +136,15 @@ export async function downloadResumeAsPDF(resumeTitle: string = "Resume") {
           transform: none !important;
           scale: 1 !important;
           overflow: visible !important;
+        }
+        
+        /* Ensure all pages maintain full A4 height */
+        #print-container .w-\\[210mm\\].h-\\[297mm\\] {
+          width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          box-sizing: border-box !important;
         }
         
         /* Ensure page breaks work */

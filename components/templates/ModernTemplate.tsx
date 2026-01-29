@@ -81,7 +81,12 @@ const ResumePage = ({
 }) => (
   <div
     id={id}
-    className="w-[210mm] h-[297mm] bg-white shadow-2xl print:shadow-none print:m-0 font-sans text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page flex flex-col"
+    className="w-[210mm] h-[297mm] bg-white shadow-2xl print:shadow-none print:m-0 font-sans text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page"
+    style={{
+      minHeight: "297mm",
+      maxHeight: "297mm",
+      height: "297mm",
+    }}
   >
     {children}
   </div>
@@ -151,7 +156,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
           .map((node) => ({
             type: node.dataset.type as RenderItemType,
             index: parseInt(node.dataset.index || "0"),
-            height: node.offsetHeight + 10,
+            height: node.offsetHeight + 12,
             column: "left" as const,
           }))
           .filter((item) => item.height > 20);
@@ -250,7 +255,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         const edu = education?.[index];
         if (!edu) return null;
         return (
-          <div className="text-[11px] mb-2 pl-1.5">
+          <div className="text-[11px] mb-5 pl-1.5">
             <p className="font-bold uppercase leading-tight mb-1">
               {edu.school}
             </p>
@@ -297,7 +302,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         const award = honors_awards?.[index];
         if (!award) return null;
         return (
-          <div className="text-[11px] mb-1 pl-1.5">
+          <div className="text-[11px] mb-3 pl-1.5">
             <p className="font-bold uppercase leading-tight mb-0.5 text-white">
               {award.title}
             </p>
@@ -616,11 +621,11 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
                 ></div>
               )}
 
-              {/* TWO COLUMN LAYOUT */}
-              <div className="flex flex-row flex-1 overflow-hidden">
+              {/* TWO COLUMN LAYOUT - CRITICAL: Use h-full to fill remaining space */}
+              <div className="flex flex-row h-full overflow-hidden">
                 {/* LEFT SIDEBAR */}
                 <aside
-                  className="w-[32%] p-6 pt-6 flex flex-col text-white shrink-0 overflow-hidden"
+                  className="w-[32%] p-6 pt-6 h-full text-white shrink-0 overflow-hidden"
                   style={{ backgroundColor: COLORS.sidebar }}
                 >
                   {page.left &&
@@ -634,7 +639,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
                 </aside>
 
                 {/* RIGHT MAIN COLUMN */}
-                <main className="flex-1 p-8 pt-6 overflow-hidden">
+                <main className="flex-1 p-8 pt-6 h-full overflow-hidden">
                   <div>
                     {page.right &&
                       page.right.map((item, i) => (
