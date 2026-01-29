@@ -20,16 +20,15 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
       email: "",
       phone: "",
       location: "",
+      linkedin: "", // 1. Initialize new field
       summary: "",
-    }
+    },
   );
 
   const [errors, setErrors] = useState<
     Partial<Record<keyof PersonalInfo, string>>
   >({});
 
-  // 2. The Debounced Saver (2 SECONDS)
-  // We allow saving even with errors so user data is safe
   const debouncedSave = useDebouncedCallback(
     async (data: Partial<PersonalInfo>) => {
       try {
@@ -40,16 +39,15 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
         setIsSaving(false);
       }
     },
-    2000
+    2000,
   );
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
 
-    // 1. REAL-TIME VALIDATION (Visual Only)
-    // We check if required fields are empty and set visual errors immediately
+    // Real-time validation
     let newError = undefined;
 
     if (name === "full_name" && !value.trim()) {
@@ -61,31 +59,26 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
     } else if (name === "location" && !value.trim()) {
       newError = "Location is required";
     }
+    // No validation needed for linkedin since it is optional
 
     // Update Error State
     if (newError) {
       setErrors((prev) => ({ ...prev, [name]: newError }));
     } else {
-      // Only clear error if one existed
       if (errors[name as keyof PersonalInfo]) {
         setErrors((prev) => ({ ...prev, [name]: undefined }));
       }
     }
 
-    // 2. Immediate Updates
     const newData = { ...formData, [name]: value };
-    setFormData(newData); // Update Input
+    setFormData(newData);
 
-    // Update Preview (Context)
     updateResumeData("personal_info", {
       ...initialData,
       ...newData,
     } as PersonalInfo);
 
-    // 3. Set Status
     setIsSaving(true);
-
-    // 4. Queue DB Call (Save regardless of errors)
     debouncedSave(newData);
   };
 
@@ -170,6 +163,23 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
           {errors.location && (
             <p className="text-error text-xs mt-1">{errors.location}</p>
           )}
+        </div>
+
+        {/* 2. New LinkedIn Field */}
+        <div>
+          <label className={labelStyles}>
+            LinkedIn{" "}
+            <span className="text-muted/60 font-normal lowercase tracking-normal ml-1">
+              (optional)
+            </span>
+          </label>
+          <input
+            name="linkedin"
+            value={formData.linkedin || ""}
+            onChange={handleChange}
+            placeholder="linkedin.com/in/username"
+            className={getInputStyles("linkedin")}
+          />
         </div>
 
         {/* Summary */}
