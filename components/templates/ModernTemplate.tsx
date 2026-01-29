@@ -581,6 +581,12 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
                       </p>
                     </div>
                     <div className="grid grid-cols-1 gap-y-1.5 text-[10px] opacity-90 text-right min-w-[200px]">
+                      {personal_info?.location && (
+                        <span className="flex items-center justify-end gap-2">
+                          {personal_info.location}
+                          <MapPin size={11} className="text-[#98c1d9]" />
+                        </span>
+                      )}
                       {personal_info?.phone && (
                         <span className="flex items-center justify-end gap-2">
                           {personal_info.phone}{" "}
