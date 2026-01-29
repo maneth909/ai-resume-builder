@@ -256,9 +256,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         if (!edu) return null;
         return (
           <div className="text-[11px] mb-5 pl-1.5">
-            <p className="font-bold uppercase leading-tight mb-1">
-              {edu.school}
-            </p>
+            <p className="font-bold leading-tight mb-1">{edu.school}</p>
             <p className="italic text-[#98c1d9] mb-1 text-[10px]">
               {edu.degree}
             </p>
@@ -276,7 +274,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
             {skills?.map((skill) => (
               <span
                 key={skill.id}
-                className="px-2 py-1 border border-white/20 text-white text-[10px] font-medium uppercase tracking-tight rounded-sm"
+                className="px-2 py-1 border border-white/20 text-white text-[10px] font-medium tracking-tight rounded-sm"
               >
                 {skill.name}
               </span>
@@ -290,7 +288,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         if (!lang) return null;
         return (
           <div className="flex justify-between items-end border-b border-white/10 pb-1 mb-1 pl-1.5">
-            <span className="text-[11px] font-bold uppercase">{lang.name}</span>
+            <span className="text-[11px] font-bold">{lang.name}</span>
             <span className="text-[9px] italic text-[#98c1d9]">
               {lang.proficiency}
             </span>
@@ -303,7 +301,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         if (!award) return null;
         return (
           <div className="text-[11px] mb-3 pl-1.5">
-            <p className="font-bold uppercase leading-tight mb-0.5 text-white">
+            <p className="font-bold leading-tight mb-0.5 text-white">
               {award.title}
             </p>
             <p className="text-[9px] italic text-[#98c1d9] opacity-90">
@@ -318,7 +316,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         if (!ref) return null;
         return (
           <div className="text-[10px] mb-1 pl-1.5">
-            <p className="font-bold uppercase text-[#98c1d9]">{ref.name}</p>
+            <p className="font-bold text-[#98c1d9]">{ref.name}</p>
             <p className="italic text-[9px] mb-0.5 opacity-90">
               {ref.position}
             </p>
@@ -332,7 +330,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         return (
           <section className="mb-4">
             <SectionHeader title="Summary" className="mt-[-3px]" />
-            <p className="text-[11px] leading-relaxed text-gray-600 italic pl-1.5">
+            <p className="text-[11px] leading-relaxed text-gray-600 pl-1.5">
               {personal_info?.summary}
             </p>
           </section>
@@ -393,7 +391,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         if (!cert) return null;
         return (
           <div className="flex flex-col text-[11px] border-b border-gray-100 pb-1 mb-3">
-            <span className="font-bold text-[#1e2d42] uppercase text-[11px]">
+            <span className="font-bold text-[#1e2d42] text-[11px]">
               {cert.name}
             </span>
             <span className="text-[10px] text-gray-500 italic">

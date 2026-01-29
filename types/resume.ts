@@ -25,6 +25,7 @@ export interface PersonalInfo {
   phone: string | null;
   location: string | null;
   summary: string | null;
+  linkedin?: string | null;
 }
 
 export interface WorkExperience {
