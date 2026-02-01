@@ -4,17 +4,17 @@ import { format } from "date-fns";
 import { Mail, Phone, MapPin, Linkedin, Globe } from "lucide-react";
 import { useEffect, useState, useRef, useLayoutEffect } from "react";
 
-// --- THEME CONSTANTS (Copper/Minimal Theme) ---
+// --- THEME CONSTANTS  ---
 const COLORS = {
   accent: "#1e5c76",
-  textMain: "#334155", // Dark Grey/Black
-  textSub: "#617280", // Lighter Grey
+  textMain: "#334155",
+  textSub: "#617280",
   border: "#e5e7eb",
 };
 
 // --- A4 CONSTANTS ---
 const A4_HEIGHT_PX = 1122;
-const HEADER_HEIGHT = 180; // Estimated Header Height for this design
+const HEADER_HEIGHT = 180;
 const PAGE_PADDING_TOP = 50;
 const PAGE_PADDING_BOTTOM = 50;
 const USABLE_PAGE_HEIGHT =
@@ -220,11 +220,9 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
         );
 
       case "skills_header":
-        // UPDATED: Removed "& Hobbies"
         return <SectionHeader title="Skills" />;
 
       case "skills_list":
-        // UPDATED: Changed from grid to flex-wrap with rounded labels
         return (
           <div className="flex flex-wrap gap-2 mb-4">
             {skills.map((skill, i) => (
@@ -418,7 +416,7 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
           width: "210mm",
           paddingLeft: "2.5rem",
           paddingRight: "2.5rem",
-        }} // Simulate page padding
+        }}
       >
         {getMeasurementItems()}
       </div>
@@ -441,9 +439,8 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
                 {/* HEADER (Only on Page 1) */}
                 {isFirstPage && (
                   <header className="border-b border-gray-300 pb-6 mb-2 shrink-0">
-                    {/* CHANGED items-start to items-end HERE for repositioning effect */}
                     <div className="flex justify-between items-end">
-                      {/* Left: Name & Title */}
+                      {/* Name & Title */}
                       <div className="max-w-[60%]">
                         <h1
                           className="text-4xl font-bold tracking-widest mb-2"

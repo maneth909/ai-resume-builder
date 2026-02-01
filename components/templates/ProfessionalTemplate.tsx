@@ -175,7 +175,7 @@ export default function ProfessionalTemplate({ resume }: { resume: Resume }) {
         newPages.push(currentPage);
         isFirstPage = false;
 
-        // Circuit breaker: If item is massive and won't fit on empty page, force it
+        // If item is massive and won't fit on empty page, force it
         if (
           currentPage.left.length === 0 &&
           currentPage.right.length === 0 &&

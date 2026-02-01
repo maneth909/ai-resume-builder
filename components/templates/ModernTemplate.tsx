@@ -63,7 +63,6 @@ const SectionHeader = ({
 }) => (
   <div className={`flex items-stretch mt-6 mb-3 ${className}`}>
     <div className="w-1.5 shrink-0 bg-[#4292d7]"></div>
-    {/* Increased font to text-sm (14px) */}
     <div className="px-4 py-2 font-bold text-sm uppercase tracking-[0.2em] leading-none flex items-center text-white bg-[#1e2d42]">
       {title}
     </div>
@@ -79,7 +78,7 @@ const ResumePage = ({
 }) => (
   <div
     id={id}
-    className="w-[210mm] h-[297mm] bg-white shadow-2xl print:shadow-none print:m-0 font-sans text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page"
+    className="resume-page w-[210mm] h-[297mm] bg-white shadow-2xl print:shadow-none print:m-0 font-sans text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page"
     style={{
       minHeight: "297mm",
       maxHeight: "297mm",
@@ -113,6 +112,23 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
   const [pages, setPages] = useState<PageContent[]>([{ left: [], right: [] }]);
   const [isCalculated, setIsCalculated] = useState(false);
   const measureRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.innerHTML = `
+    @media print {
+      .resume-page {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  `;
+    document.head.appendChild(style);
+
+    return () => {
+      style.remove();
+    };
+  }, []);
 
   // --- PAGINATION LOGIC ---
   useLayoutEffect(() => {
@@ -595,7 +611,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
                 ></div>
               )}
 
-              {/* TWO COLUMN LAYOUT - CRITICAL: Use h-full to fill remaining space */}
+              {/* TWO COLUMN LAYOUT */}
               <div className="flex flex-row h-full overflow-hidden">
                 {/* LEFT SIDEBAR */}
                 <aside

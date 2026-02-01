@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Resume } from "@/types/resume";
@@ -11,6 +11,8 @@ import { updateResumeTitle } from "@/actions/resume";
 
 import { analyzeResume } from "@/actions/ai";
 import { Loader2, RefreshCcw } from "lucide-react";
+
+import { useReactToPrint } from "react-to-print";
 
 import PersonalInfoForm from "@/components/form/PersonalInfoForm";
 import WorkExperienceForm from "@/components/form/WorkExperienceForm";
@@ -34,7 +36,6 @@ import {
   Users,
   Tent,
   ArrowLeft,
-  Share2,
   Download,
   Sparkles,
   X,
@@ -120,10 +121,10 @@ function EditorContent({ resume }: ResumeEditorProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // use 'resumeData' for the Preview so it updates live, no touch DB yet
+  // use 'resumeData' for the Preview so it updates live
   const { resumeData } = useResume();
 
-  // get state from URL, default to personal_info and closed AI
+  // get state from URL
   const activeSection =
     (searchParams.get("section") as SectionKey) || "personal_info";
   const isAIOpen = searchParams.get("ai") === "true";
@@ -138,18 +139,16 @@ function EditorContent({ resume }: ResumeEditorProps) {
     } else {
       params.delete(key);
     }
-    // scroll: false prevents the page from jumping to top on click
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const [resumeTitle, setResumeTitle] = useState(resume.title);
   const handleTitleBlur = async () => {
     if (resumeTitle.trim() === "") {
-      setResumeTitle(resume.title); // revert if empty
+      setResumeTitle(resume.title);
       return;
     }
     if (resumeTitle !== resume.title) {
-      // call server action to update
       await updateResumeTitle(resume.id, resumeTitle);
     }
   };
@@ -171,20 +170,51 @@ function EditorContent({ resume }: ResumeEditorProps) {
     }
   };
 
-  const [isDownloading, setIsDownloading] = useState(false);
-  const handleDownload = async () => {
-    setIsDownloading(true);
-    try {
-      // Dynamically import the download utility
-      const { downloadResumeAsPDF } = await import("@/lib/downloadResume");
-      await downloadResumeAsPDF(resumeTitle);
-    } catch (error) {
-      console.error("Download failed:", error);
-      alert("Failed to download resume. Please try again.");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+  // --- PRINTING LOGIC START ---
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  // 1. Create a REF to hold the resume element
+  const printContentRef = useRef<HTMLDivElement>(null);
+
+  // 2. Configure the print hook
+  const handlePrint = useReactToPrint({
+    contentRef: printContentRef,
+    documentTitle: resumeTitle || "Resume",
+    onBeforeGetContent: () => {
+      setIsPrinting(true);
+      return Promise.resolve();
+    },
+    onAfterPrint: () => {
+      setIsPrinting(false);
+    },
+    onPrintError: (error) => {
+      console.error("Print failed:", error);
+      setIsPrinting(false);
+    },
+    // This CSS is injected into the print window to ensure perfect A4 sizing
+    pageStyle: `
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+      @media print {
+        html, body {
+          height: 100%;
+          width: 100%;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+        }
+        /* Ensure colors are printed */
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+      }
+    `,
+  });
+  // --- PRINTING LOGIC END ---
+
   return (
     <div className="flex flex-col h-screen bg-whitecolor dark:bg-background text-tertiary transition-colors overflow-hidden">
       {/* ---------------- APP BAR ---------------- */}
@@ -197,7 +227,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            {/* editable title input */}
             <input
               value={resumeTitle}
               onChange={(e) => setResumeTitle(e.target.value)}
@@ -205,8 +234,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               className="font-semibold text-tertiary truncate max-w-[200px] sm:max-w-md bg-transparent border-none focus:ring-0 focus:outline-none p-0 leading-tight hover:underline cursor-text decoration-dashed underline-offset-4 decoration-muted/50"
               title="Click to rename"
             />
-
-            {/* status component */}
             <div className="h-4 flex items-center">
               <SaveStatus />
             </div>
@@ -214,34 +241,28 @@ function EditorContent({ resume }: ResumeEditorProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* buttons */}
-          {/* <button className="px-3 py-2 text-sm font-medium text-tertiary bg-transparent border border-border rounded-md hover:bg-secondary flex items-center gap-2 transition-colors">
-            <Share2 size={16} />
-            <span className="hidden sm:inline">Share</span>
-          </button> */}
+          {/* DOWNLOAD BUTTON */}
           <button
-            onClick={handleDownload}
-            disabled={isDownloading}
+            onClick={() => handlePrint()}
+            disabled={isPrinting}
             className="px-3 py-2 text-sm font-medium text-whitecolor dark:text-background bg-tertiary rounded-md hover:opacity-90 flex items-center gap-2 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isDownloading ? (
+            {isPrinting ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                <span className="hidden sm:inline">Downloading...</span>
+                <span className="hidden sm:inline">Preparing...</span>
               </>
             ) : (
               <>
                 <Download size={16} />
-                <span className="hidden sm:inline">Download</span>
+                <span className="hidden sm:inline">Download PDF</span>
               </>
             )}
           </button>
 
           <div className="w-px h-8 bg-border mx-1" />
 
-          {/* AI toggle button */}
           <button
-            // toggle URL param
             onClick={() => updateState("ai", isAIOpen ? null : "true")}
             className={`p-2 rounded-md border transition-all ${
               isAIOpen
@@ -277,7 +298,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               return (
                 <button
                   key={section.key}
-                  // set URL param
                   onClick={() => updateState("section", section.key)}
                   className={`flex items-center gap-3 px-3 py-3 rounded-md transition-all group relative ${
                     isAIOpen ? "justify-center w-full" : "w-full text-left"
@@ -321,7 +341,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
         >
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
-              {/* icon container */}
               <div className="p-2 bg-primary/10 text-primary rounded-lg">
                 {activeSectionData?.icon}
               </div>
@@ -329,14 +348,11 @@ function EditorContent({ resume }: ResumeEditorProps) {
                 {activeSectionData?.label}
               </h2>
             </div>
-
-            {/* section description */}
             <p className="text-sm text-muted leading-relaxed">
               {activeSectionData?.description}
             </p>
           </div>
 
-          {/* 1. PERSONAL INFO */}
           {activeSection === "personal_info" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <PersonalInfoForm
@@ -345,8 +361,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               />
             </div>
           )}
-
-          {/* 2. WORK EXPERIENCE */}
           {activeSection === "work_experience" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <WorkExperienceForm
@@ -355,8 +369,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               />
             </div>
           )}
-
-          {/* 3. EDUCATION */}
           {activeSection === "education" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <EducationForm
@@ -365,8 +377,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               />
             </div>
           )}
-
-          {/* 4. SKILLS */}
           {activeSection === "skills" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <SkillsForm
@@ -375,8 +385,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               />
             </div>
           )}
-
-          {/* 5. LANGUAGES */}
           {activeSection === "languages" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <LanguageForm
@@ -385,8 +393,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               />
             </div>
           )}
-
-          {/* 6. CERTIFICATIONS */}
           {activeSection === "certifications" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <CertificationForm
@@ -395,8 +401,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               />
             </div>
           )}
-
-          {/* 7. HONORS & AWARDS */}
           {activeSection === "honors_awards" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <HonorAwardForm
@@ -405,8 +409,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               />
             </div>
           )}
-
-          {/* 8. EXTRA CURRICULAR */}
           {activeSection === "extra_curricular" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <ExtraCurricularForm
@@ -415,8 +417,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               />
             </div>
           )}
-
-          {/* 9. REFERENCES (NEW) */}
           {activeSection === "resume_references" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <ReferenceForm
@@ -425,7 +425,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               />
             </div>
           )}
-
           {activeSection !== "personal_info" &&
             activeSection !== "work_experience" &&
             activeSection !== "education" &&
@@ -450,7 +449,13 @@ function EditorContent({ resume }: ResumeEditorProps) {
               isAIOpen ? "scale-[0.75] xl:scale-[0.85]" : "scale-[0.85]"
             }`}
           >
-            <ResumePreview resume={resumeData} enableThemeSwitching={true} />
+            {/* 
+                Wrap the ResumePreview in the printContentRef.
+                This tells react-to-print exactly what to clone and print.
+            */}
+            <div ref={printContentRef}>
+              <ResumePreview resume={resumeData} enableThemeSwitching={true} />
+            </div>
           </div>
         </div>
 
@@ -474,7 +479,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
           </div>
 
           <div className="flex-1 p-6 overflow-y-auto">
-            {/* 1. INITIAL STATE: No analysis yet */}
             {!analysisResult && !isAnalyzing && (
               <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
                 <div className="bg-primary/5 border border-primary/10 rounded-full p-4">
@@ -489,8 +493,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
                     compatibility using Llama 3 power.
                   </p>
                 </div>
-
-                {/* JD INPUT */}
                 <div className="w-full text-left">
                   <label className="text-xs font-semibold text-muted ml-1">
                     Target Job Description (Optional)
@@ -498,11 +500,10 @@ function EditorContent({ resume }: ResumeEditorProps) {
                   <textarea
                     value={jobDescription}
                     onChange={(e) => setJobDescription(e.target.value)}
-                    placeholder="Paste the job description here for a tailored ATS score..."
+                    placeholder="Paste the job description here..."
                     className="w-full h-32 mt-1 p-3 text-xs bg-whitecolor dark:bg-background border border-border rounded-md focus:ring-1 focus:ring-primary focus:outline-none resize-none placeholder:text-muted/50"
                   />
                 </div>
-
                 <button
                   onClick={handleRunAnalysis}
                   className="px-6 py-2.5 bg-primary text-whitecolor text-sm font-medium rounded-full hover:opacity-90 transition-all shadow-sm shadow-primary/20 w-full"
@@ -511,8 +512,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
                 </button>
               </div>
             )}
-
-            {/* 2. LOADING STATE */}
             {isAnalyzing && (
               <div className="flex flex-col items-center justify-center h-full space-y-4">
                 <Loader2 className="animate-spin text-primary" size={32} />
@@ -521,8 +520,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
                 </p>
               </div>
             )}
-
-            {/* 3. RESULT STATE */}
             {analysisResult && !isAnalyzing && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex justify-between items-center mb-4">
@@ -537,20 +534,8 @@ function EditorContent({ resume }: ResumeEditorProps) {
                     <RefreshCcw size={16} />
                   </button>
                 </div>
-
-                {/* Render HTML Content with FORCED STYLES */}
                 <div
-                  className="text-sm text-muted leading-relaxed
-        /* Target H4 headers */
-        [&_h4]:font-bold [&_h4]:text-tertiary [&_h4]:mt-6 [&_h4]:mb-3 [&_h4]:text-base
-        /* Target Paragraphs */
-        [&_p]:mb-4
-        /* Target Lists (Critical Fix for Bullets) */
-        [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_ul]:mb-4
-        /* Target List Items */
-        [&_li]:pl-1
-        /* Target Strong text */
-        [&_strong]:font-semibold [&_strong]:text-primary"
+                  className="text-sm text-muted leading-relaxed [&_h4]:font-bold [&_h4]:text-tertiary [&_h4]:mt-6 [&_h4]:mb-3 [&_h4]:text-base [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_ul]:mb-4 [&_li]:pl-1 [&_strong]:font-semibold [&_strong]:text-primary"
                   dangerouslySetInnerHTML={{ __html: analysisResult }}
                 />
               </div>
