@@ -128,7 +128,7 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
 
         nodes.forEach((node) => {
           // Get height + margin buffer
-          const h = node.offsetHeight + 10;
+          const h = node.offsetHeight + 15;
 
           if (currentHeight + h > maxPageHeight) {
             flushPage();
@@ -180,7 +180,7 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
         return (
           <div className="mb-5">
             <div className="flex justify-between items-baseline mb-1">
-              <h4 className="font-bold text-[11pt] text-gray-900 uppercase">
+              <h4 className="font-bold text-[11pt] text-gray-900">
                 {exp.job_title}
               </h4>
               <span className="text-[10pt] font-semibold text-gray-600">
@@ -441,18 +441,18 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
                 {/* HEADER (Only on Page 1) */}
                 {isFirstPage && (
                   <header className="border-b border-gray-300 pb-6 mb-2 shrink-0">
-                    <div className="flex justify-between items-start">
+                    {/* CHANGED items-start to items-end HERE for repositioning effect */}
+                    <div className="flex justify-between items-end">
                       {/* Left: Name & Title */}
                       <div className="max-w-[60%]">
                         <h1
-                          className="text-4xl tracking-widest mb-2"
+                          className="text-4xl font-bold tracking-widest mb-2"
                           style={{ color: COLORS.accent }}
                         >
                           {personal_info?.full_name || "YOUR NAME"}
                         </h1>
-                        <p className="text-md font-sans tracking-[0.2em] text-gray-600 uppercase">
-                          {work_experience?.[0]?.job_title ||
-                            "PROFESSIONAL TITLE"}
+                        <p className="text-md font-sans tracking-[0.2em] text-gray-600 ">
+                          {personal_info?.role && personal_info.role}
                         </p>
                       </div>
 

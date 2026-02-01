@@ -61,12 +61,10 @@ const SectionHeader = ({
   title: string;
   className?: string;
 }) => (
-  <div
-    className={`flex items-stretch mt-6 mb-3  ${className}`}
-    // style={{ marginTop: "1.5rem" }}
-  >
+  <div className={`flex items-stretch mt-6 mb-3 ${className}`}>
     <div className="w-1.5 shrink-0 bg-[#4292d7]"></div>
-    <div className="px-4 py-2 font-bold text-[11px] uppercase tracking-[0.2em] leading-none flex items-center text-white bg-[#1e2d42]">
+    {/* Increased font to text-sm (14px) */}
+    <div className="px-4 py-2 font-bold text-sm uppercase tracking-[0.2em] leading-none flex items-center text-white bg-[#1e2d42]">
       {title}
     </div>
   </div>
@@ -138,25 +136,17 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
           ? (Array.from(rightColumn.children) as HTMLElement[])
           : [];
 
-        console.log(
-          "Left nodes:",
-          leftNodes.length,
-          "Right nodes:",
-          rightNodes.length,
-        );
-
         if (leftNodes.length === 0 && rightNodes.length === 0) {
           setPages([{ left: [], right: [] }]);
           setIsCalculated(true);
           return;
         }
 
-        // Collect items with heights
         const leftItems: PageItem[] = leftNodes
           .map((node) => ({
             type: node.dataset.type as RenderItemType,
             index: parseInt(node.dataset.index || "0"),
-            height: node.offsetHeight + 12,
+            height: node.offsetHeight + 15,
             column: "left" as const,
           }))
           .filter((item) => item.height > 20);
@@ -170,14 +160,6 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
           }))
           .filter((item) => item.height > 20);
 
-        console.log(
-          "Left items:",
-          leftItems.length,
-          "Right items:",
-          rightItems.length,
-        );
-
-        // Paginate
         const newPages: PageContent[] = [];
         let leftIdx = 0;
         let rightIdx = 0;
@@ -191,7 +173,6 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
           let leftHeight = 0;
           let rightHeight = 0;
 
-          // Fill left column for this page
           while (leftIdx < leftItems.length) {
             const item = leftItems[leftIdx];
             if (leftHeight + item.height! <= maxHeight) {
@@ -203,7 +184,6 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
             }
           }
 
-          // Fill right column for this page
           while (rightIdx < rightItems.length) {
             const item = rightItems[rightIdx];
             if (rightHeight + item.height! <= maxHeight) {
@@ -222,14 +202,6 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         if (newPages.length === 0) {
           newPages.push({ left: [], right: [] });
         }
-
-        console.log(
-          `Created ${newPages.length} pages:`,
-          newPages.map(
-            (p, i) =>
-              `Page ${i + 1}: ${p.left.length} left items, ${p.right.length} right items`,
-          ),
-        );
 
         setPages(newPages);
         setIsCalculated(true);
@@ -255,12 +227,12 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         const edu = education?.[index];
         if (!edu) return null;
         return (
-          <div className="text-[11px] mb-5 pl-1.5">
+          <div className="text-sm mb-5 pl-1.5">
+            {/* Increased to text-sm */}
             <p className="font-bold leading-tight mb-1">{edu.school}</p>
-            <p className="italic text-[#98c1d9] mb-1 text-[10px]">
-              {edu.degree}
-            </p>
-            <p className="opacity-75 text-[9px]">
+            {/* Increased to text-xs */}
+            <p className="italic text-[#98c1d9] mb-1 text-xs">{edu.degree}</p>
+            <p className="opacity-75 text-[11px]">
               {formatDate(edu.start_date)} —{" "}
               {edu.is_current ? "Present" : formatDate(edu.end_date)}
             </p>
@@ -274,7 +246,8 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
             {skills?.map((skill) => (
               <span
                 key={skill.id}
-                className="px-2 py-1 border border-white/20 text-white text-[10px] font-medium tracking-tight rounded-sm"
+                // Increased to text-xs
+                className="px-2 py-1 border border-white/20 text-white text-xs font-medium tracking-tight rounded-sm"
               >
                 {skill.name}
               </span>
@@ -288,8 +261,9 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         if (!lang) return null;
         return (
           <div className="flex justify-between items-end border-b border-white/10 pb-1 mb-1 pl-1.5">
-            <span className="text-[11px] font-bold">{lang.name}</span>
-            <span className="text-[9px] italic text-[#98c1d9]">
+            {/* Increased to text-sm */}
+            <span className="text-sm font-bold">{lang.name}</span>
+            <span className="text-xs italic text-[#98c1d9]">
               {lang.proficiency}
             </span>
           </div>
@@ -300,11 +274,11 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         const award = honors_awards?.[index];
         if (!award) return null;
         return (
-          <div className="text-[11px] mb-3 pl-1.5">
+          <div className="text-sm mb-3 pl-1.5">
             <p className="font-bold leading-tight mb-0.5 text-white">
               {award.title}
             </p>
-            <p className="text-[9px] italic text-[#98c1d9] opacity-90">
+            <p className="text-xs italic text-[#98c1d9] opacity-90">
               {award.issuer}
             </p>
           </div>
@@ -315,11 +289,10 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         const ref = resume_references?.[index];
         if (!ref) return null;
         return (
-          <div className="text-[10px] mb-1 pl-1.5">
-            <p className="font-bold text-[#98c1d9]">{ref.name}</p>
-            <p className="italic text-[9px] mb-0.5 opacity-90">
-              {ref.position}
-            </p>
+          <div className="text-xs mb-1 pl-1.5">
+            {/* Increased to text-xs/sm */}
+            <p className="font-bold text-[#98c1d9] text-sm">{ref.name}</p>
+            <p className="italic text-xs mb-0.5 opacity-90">{ref.position}</p>
             <p className="opacity-75 break-words">{ref.email}</p>
             <p className="opacity-75">{ref.phone}</p>
           </div>
@@ -330,7 +303,8 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         return (
           <section className="mb-4">
             <SectionHeader title="Summary" className="mt-[-3px]" />
-            <p className="text-[11px] leading-relaxed text-gray-600 pl-1.5">
+            {/* Increased to text-sm */}
+            <p className="text-sm leading-relaxed text-gray-600 pl-1.5">
               {personal_info?.summary}
             </p>
           </section>
@@ -343,18 +317,21 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         return (
           <div className="border-l-4 border-[#1e2d42] pl-5 relative mb-4">
             <div className="flex justify-between items-baseline mb-1">
-              <h4 className="font-bold text-[13px] text-[#1e2d42] uppercase tracking-tight">
+              {/* Increased to text-base */}
+              <h4 className="font-bold text-base text-[#1e2d42] tracking-tight">
                 {exp.company}
               </h4>
-              <span className="text-[9px] font-bold text-gray-400 uppercase">
+              {/* Increased to text-xs */}
+              <span className="text-xs font-bold text-gray-400">
                 {formatDate(exp.start_date)} -{" "}
                 {exp.is_current ? "Present" : formatDate(exp.end_date)}
               </span>
             </div>
-            <p className="text-[10px] font-bold text-[#3d5a80] mb-2 italic uppercase">
+            {/* Increased to text-sm */}
+            <p className="text-sm font-bold text-[#3d5a80] mb-2 italic ">
               {exp.job_title}
             </p>
-            <p className="text-[11px] text-gray-600 leading-relaxed whitespace-pre-line">
+            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
               {exp.description}
             </p>
           </div>
@@ -367,19 +344,19 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         return (
           <div className="border-l-4 border-[#3d5a80] pl-5 mb-4">
             <div className="flex justify-between items-baseline mb-1">
-              <h4 className="font-bold text-[12px] text-[#1e2d42] uppercase">
+              <h4 className="font-bold text-sm text-[#1e2d42]">
                 {extra.organization || extra.title}
               </h4>
-              <span className="text-[9px] font-bold text-gray-400 uppercase">
+              <span className="text-xs font-bold text-gray-400 ">
                 {formatDate(extra.start_date)}
               </span>
             </div>
             {extra.organization && (
-              <p className="text-[10px] font-bold text-[#3d5a80] mb-1 italic uppercase">
+              <p className="text-xs font-bold text-[#3d5a80] mb-1 italic ">
                 {extra.title}
               </p>
             )}
-            <p className="text-[10px] text-gray-600 italic leading-tight">
+            <p className="text-sm text-gray-600 italic leading-tight">
               {extra.description}
             </p>
           </div>
@@ -390,11 +367,9 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         const cert = certifications[index];
         if (!cert) return null;
         return (
-          <div className="flex flex-col text-[11px] border-b border-gray-100 pb-1 mb-3">
-            <span className="font-bold text-[#1e2d42] text-[11px]">
-              {cert.name}
-            </span>
-            <span className="text-[10px] text-gray-500 italic">
+          <div className="flex flex-col text-sm border-b border-gray-100 pb-1 mb-3">
+            <span className="font-bold text-[#1e2d42]">{cert.name}</span>
+            <span className="text-xs text-gray-500 italic">
               {cert.issuer} {cert.issue_date && `• ${cert.issue_date}`}
             </span>
           </div>
@@ -576,36 +551,35 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
                         {personal_info?.full_name || "YOUR NAME"}
                       </h1>
                       <p
-                        className="font-medium tracking-[0.25em] text-xs uppercase pl-1"
+                        className="font-medium tracking-[0.25em] text-sm pl-1"
                         style={{ color: COLORS.accent }}
                       >
-                        {work_experience?.[0]?.job_title ||
-                          "PROFESSIONAL TITLE"}
+                        {personal_info?.role && personal_info.role}
                       </p>
                     </div>
-                    <div className="grid grid-cols-1 gap-y-1.5 text-[10px] opacity-90 text-right min-w-[200px]">
+                    <div className="grid grid-cols-1 gap-y-1.5 text-xs opacity-90 text-right min-w-[200px]">
                       {personal_info?.location && (
                         <span className="flex items-center justify-end gap-2">
                           {personal_info.location}
-                          <MapPin size={11} className="text-[#98c1d9]" />
+                          <MapPin size={12} className="text-[#98c1d9]" />
                         </span>
                       )}
                       {personal_info?.phone && (
                         <span className="flex items-center justify-end gap-2">
                           {personal_info.phone}{" "}
-                          <Phone size={11} className="text-[#98c1d9]" />
+                          <Phone size={12} className="text-[#98c1d9]" />
                         </span>
                       )}
                       {personal_info?.email && (
                         <span className="flex items-center justify-end gap-2">
                           {personal_info.email}{" "}
-                          <Mail size={11} className="text-[#98c1d9]" />
+                          <Mail size={12} className="text-[#98c1d9]" />
                         </span>
                       )}
                       {personal_info?.linkedin && (
                         <span className="flex items-center justify-end gap-2">
                           {personal_info.linkedin}
-                          <Linkedin size={11} className="text-[#98c1d9]" />
+                          <Linkedin size={12} className="text-[#98c1d9]" />
                         </span>
                       )}
                     </div>
