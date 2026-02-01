@@ -12,6 +12,7 @@ import { updateResumeTitle } from "@/actions/resume";
 import { analyzeResume } from "@/actions/ai";
 import { Loader2, RefreshCcw } from "lucide-react";
 
+// --- NEW IMPORTS ---
 import { useReactToPrint } from "react-to-print";
 
 import PersonalInfoForm from "@/components/form/PersonalInfoForm";
@@ -172,26 +173,20 @@ function EditorContent({ resume }: ResumeEditorProps) {
 
   // --- PRINTING LOGIC START ---
   const [isPrinting, setIsPrinting] = useState(false);
-
-  // 1. Create a REF to hold the resume element
   const printContentRef = useRef<HTMLDivElement>(null);
 
   // 2. Configure the print hook
-  const handlePrint = useReactToPrint({
+  const reactToPrintTrigger = useReactToPrint({
     contentRef: printContentRef,
     documentTitle: resumeTitle || "Resume",
-    onBeforeGetContent: () => {
-      setIsPrinting(true);
-      return Promise.resolve();
-    },
     onAfterPrint: () => {
+      // Turn off spinner when done
       setIsPrinting(false);
     },
-    onPrintError: (error) => {
+    onPrintError: (error: any) => {
       console.error("Print failed:", error);
       setIsPrinting(false);
     },
-    // This CSS is injected into the print window to ensure perfect A4 sizing
     pageStyle: `
       @page {
         size: A4 portrait;
@@ -205,14 +200,22 @@ function EditorContent({ resume }: ResumeEditorProps) {
           padding: 0 !important;
           overflow: visible !important;
         }
-        /* Ensure colors are printed */
         * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
       }
     `,
-  });
+  } as any);
+
+  // 3. Create a wrapper function to force the spinner UI
+  const handlePrint = () => {
+    setIsPrinting(true);
+
+    setTimeout(() => {
+      reactToPrintTrigger();
+    }, 100);
+  };
   // --- PRINTING LOGIC END ---
 
   return (
@@ -449,17 +452,14 @@ function EditorContent({ resume }: ResumeEditorProps) {
               isAIOpen ? "scale-[0.75] xl:scale-[0.85]" : "scale-[0.85]"
             }`}
           >
-            {/* 
-                Wrap the ResumePreview in the printContentRef.
-                This tells react-to-print exactly what to clone and print.
-            */}
+            {/* WRAP PREVIEW IN THE REF */}
             <div ref={printContentRef}>
               <ResumePreview resume={resumeData} enableThemeSwitching={true} />
             </div>
           </div>
         </div>
 
-        {/* COLUMN 4: AI Analysis Sidebar */}
+        {/* COLUMN 4: AI Sidebar */}
         <div
           className={`bg-whitecolor dark:bg-secondary border-l border-border transition-[width,opacity] duration-300 ease-in-out overflow-hidden flex flex-col ${
             isAIOpen ? "w-[350px] opacity-100" : "w-0 opacity-0"
