@@ -10,7 +10,11 @@ import SaveStatus from "@/components/editor/SaveStatus";
 import { updateResumeTitle } from "@/actions/resume";
 
 import { analyzeResume } from "@/actions/ai";
-import { Loader2, RefreshCcw } from "lucide-react";
+import {
+  getRecentAnalyses,
+  saveAnalysis,
+  deleteAnalysis,
+} from "@/actions/analysis";
 
 // --- NEW IMPORTS ---
 import { useReactToPrint } from "react-to-print";
@@ -41,6 +45,11 @@ import {
   Sparkles,
   X,
   Bot,
+  Settings,
+  Copy,
+  RefreshCcw,
+  Loader2,
+  Check,
 } from "lucide-react";
 
 // --- Sections config ---
@@ -102,7 +111,7 @@ const SECTIONS = [
     key: "extra_curricular",
     label: "Extra-curriculars",
     icon: <Tent size={18} />,
-    description: "What you do beyond the job.”",
+    description: "What you do beyond the job.",
   },
   {
     key: "resume_references",
@@ -158,14 +167,37 @@ function EditorContent({ resume }: ResumeEditorProps) {
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
   const [jobDescription, setJobDescription] = useState("");
 
+  const [history, setHistory] = useState<any[]>([]);
+  // ERROR WAS HERE: It might have been defaulting to "form" or switching to it
+  const [view, setView] = useState<"history" | "result">("history");
+
+  // Load history on mount
+  useEffect(() => {
+    async function loadHistory() {
+      const data = await getRecentAnalyses(resume.id);
+      setHistory(data);
+      // REMOVED THE LINE THAT CAUSED THE BUG:
+      // if (data.length === 0) setView("form");  <-- THIS WAS DELETING YOUR UI
+    }
+    loadHistory();
+  }, [resume.id]);
+
   const handleRunAnalysis = async () => {
     setIsAnalyzing(true);
     try {
       const result = await analyzeResume(resumeData, jobDescription);
       setAnalysisResult(result);
+
+      // SAVE TO SUPABASE
+      await saveAnalysis(resume.id, jobDescription, result);
+
+      // Refresh local history
+      const updatedHistory = await getRecentAnalyses(resume.id);
+      setHistory(updatedHistory);
+
+      setView("result");
     } catch (error) {
-      console.error(error);
-      alert("AI Analysis failed. Please try again.");
+      /* ... */
     } finally {
       setIsAnalyzing(false);
     }
@@ -462,81 +494,276 @@ function EditorContent({ resume }: ResumeEditorProps) {
         {/* COLUMN 4: AI Sidebar */}
         <div
           className={`bg-whitecolor dark:bg-secondary border-l border-border transition-[width,opacity] duration-300 ease-in-out overflow-hidden flex flex-col ${
-            isAIOpen ? "w-[350px] opacity-100" : "w-0 opacity-0"
+            isAIOpen ? "w-[380px] opacity-100" : "w-0 opacity-0"
           }`}
         >
-          <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2 text-primary font-bold">
-              <Bot size={20} />
-              <span>AI Assistant</span>
+          {/* HEADER */}
+          <div className="h-14 border-b border-border flex items-center justify-between px-4 shrink-0 bg-whitecolor/80 dark:bg-secondary/80 backdrop-blur-md z-20">
+            <div className="flex items-center gap-3">
+              {view === "result" && (
+                <button
+                  onClick={() => {
+                    setView("history");
+                    setJobDescription(""); // Clear input on back
+                  }}
+                  className="p-1.5 -ml-2 rounded-full text-muted hover:bg-tertiary/5 hover:text-tertiary transition-colors"
+                  title="Back to History"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+              )}
+              <span className="text-sm font-bold text-tertiary tracking-tight">
+                {view === "result" ? "AI Feedback" : "Analysis History"}
+              </span>
             </div>
-            <button
-              onClick={() => updateState("ai", null)}
-              className="text-muted hover:text-tertiary"
-            >
-              <X size={18} />
-            </button>
-          </div>
 
-          <div className="flex-1 p-6 overflow-y-auto">
-            {!analysisResult && !isAnalyzing && (
-              <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                <div className="bg-primary/5 border border-primary/10 rounded-full p-4">
-                  <Sparkles size={32} className="text-primary" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-tertiary mb-1">
-                    AI Resume Review
-                  </h4>
-                  <p className="text-xs text-muted max-w-[240px] mx-auto">
-                    Get instant feedback on grammar, impact, and ATS
-                    compatibility using Llama 3 power.
-                  </p>
-                </div>
-                <div className="w-full text-left">
-                  <label className="text-xs font-semibold text-muted ml-1">
-                    Target Job Description (Optional)
-                  </label>
-                  <textarea
-                    value={jobDescription}
-                    onChange={(e) => setJobDescription(e.target.value)}
-                    placeholder="Paste the job description here..."
-                    className="w-full h-32 mt-1 p-3 text-xs bg-whitecolor dark:bg-background border border-border rounded-md focus:ring-1 focus:ring-primary focus:outline-none resize-none placeholder:text-muted/50"
-                  />
-                </div>
+            <div className="flex items-center gap-1">
+              {/* RE-ANALYZE BUTTON (Only visible in Result view) */}
+              {view === "result" && (
                 <button
                   onClick={handleRunAnalysis}
-                  className="px-6 py-2.5 bg-primary text-whitecolor text-sm font-medium rounded-full hover:opacity-90 transition-all shadow-sm shadow-primary/20 w-full"
+                  disabled={isAnalyzing}
+                  className="p-2 rounded-full text-primary hover:bg-primary/10 transition-colors relative group"
+                  title="Re-analyze"
                 >
-                  {jobDescription ? "Compare & Score" : "General Review"}
+                  <RefreshCcw
+                    size={18}
+                    className={isAnalyzing ? "animate-spin" : ""}
+                  />
                 </button>
-              </div>
+              )}
+
+              <button
+                className="p-2 rounded-full text-muted hover:bg-tertiary/5 hover:text-tertiary transition-colors"
+                title="Settings"
+              >
+                <Settings size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* MAIN CONTENT */}
+          <div className="flex-1 overflow-hidden relative bg-background/30 flex flex-col">
+            {/* --- SCENARIO 1: MAIN VIEW (History + Input) --- */}
+            {view === "history" && (
+              <>
+                {history.length === 0 ? (
+                  // STATE A: EMPTY HISTORY (Centered Input)
+                  <div className="flex-1 flex flex-col justify-center p-6 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="text-center space-y-2 mb-6">
+                      <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                        <Sparkles size={28} />
+                      </div>
+                      <h3 className="text-lg font-bold text-tertiary">
+                        New Analysis
+                      </h3>
+                      <p className="text-xs text-muted max-w-[240px] mx-auto leading-relaxed">
+                        Paste a job description below to start matching your
+                        resume.
+                      </p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* NEW FOOTER LAYOUT INPUT CONTAINER */}
+                      <div className="w-full bg-whitecolor dark:bg-background border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm flex flex-col overflow-hidden">
+                        <textarea
+                          value={jobDescription}
+                          onChange={(e) => setJobDescription(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              if (!isAnalyzing && jobDescription.trim()) {
+                                handleRunAnalysis();
+                              }
+                            }
+                          }}
+                          placeholder="Paste the full Job Description here..."
+                          maxLength={5000}
+                          className="w-full h-40 p-4 text-sm bg-transparent border-none focus:ring-0 resize-none placeholder:text-muted/40 outline-none scrollbar-thin"
+                          autoFocus
+                        />
+
+                        {/* INPUT FOOTER */}
+                        <div className="flex items-center justify-between px-3 py-2 border-t border-border/40 bg-secondary/10">
+                          <span className="text-[10px] text-muted font-medium">
+                            {jobDescription.length} / 5000 chars
+                          </span>
+
+                          <button
+                            onClick={handleRunAnalysis}
+                            disabled={isAnalyzing || !jobDescription.trim()}
+                            className="bg-primary text-whitecolor px-4 py-1.5 rounded-lg text-xs font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                          >
+                            {isAnalyzing ? (
+                              <>
+                                <Loader2 className="animate-spin" size={14} />
+                                Analyzing...
+                              </>
+                            ) : (
+                              <>
+                                <span>Analyze</span>
+                                <Sparkles
+                                  size={14}
+                                  className="text-whitecolor"
+                                />
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // STATE B: HAS HISTORY (History Top, Styled Input Bottom)
+                  <>
+                    {/* Top: History List */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-4">
+                      <div className="flex items-center justify-between px-1 mb-2">
+                        <h4 className="text-xs font-bold text-muted uppercase tracking-wider">
+                          Recent ({history.length}/3)
+                        </h4>
+                      </div>
+
+                      {history.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => {
+                            setAnalysisResult(item.analysis_result);
+                            setJobDescription(item.job_description);
+                            setView("result");
+                          }}
+                          className="group relative w-full text-left p-4 rounded-xl bg-whitecolor dark:bg-background border border-border hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                        >
+                          <div className="pr-6">
+                            <div className="font-semibold text-sm text-tertiary truncate mb-1">
+                              {item.job_title || "Untitled Analysis"}
+                            </div>
+                            <span className="text-[10px] text-muted">
+                              {new Date(item.created_at).toLocaleDateString(
+                                undefined,
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
+                            </span>
+                          </div>
+
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (confirm("Delete this analysis?")) {
+                                await deleteAnalysis(item.id);
+                                setHistory((prev) =>
+                                  prev.filter((i) => i.id !== item.id),
+                                );
+                              }
+                            }}
+                            className="absolute top-3 right-3 p-1.5 text-muted hover:text-red-500 hover:bg-red-500/10 rounded-md opacity-0 group-hover:opacity-100 transition-all"
+                            title="Delete Analysis"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Bottom: Fixed Input Area (FOOTER LAYOUT) */}
+                    <div className="shrink-0 p-4 bg-whitecolor dark:bg-secondary border-t border-border z-10">
+                      {/* FOOTER LAYOUT CONTAINER */}
+                      <div className="w-full bg-whitecolor dark:bg-background border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm flex flex-col overflow-hidden">
+                        <textarea
+                          value={jobDescription}
+                          onChange={(e) => setJobDescription(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              if (!isAnalyzing && jobDescription.trim()) {
+                                handleRunAnalysis();
+                              }
+                            }
+                          }}
+                          placeholder="Paste new Job Description..."
+                          maxLength={5000}
+                          className="w-full h-40 p-3 text-sm bg-transparent border-none focus:ring-0 resize-none placeholder:text-muted/40 outline-none scrollbar-thin"
+                        />
+
+                        {/* FOOTER BAR */}
+                        <div className="flex items-center justify-between px-3 py-2 border-t border-border/40 bg-secondary/10">
+                          <span className="text-[10px] text-muted font-medium">
+                            {jobDescription.length} / 5000 Chars
+                          </span>
+
+                          <button
+                            onClick={handleRunAnalysis}
+                            disabled={isAnalyzing || !jobDescription.trim()}
+                            className="p-1.5 bg-primary text-whitecolor rounded-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all shadow-sm"
+                            title="Run Analysis"
+                          >
+                            {isAnalyzing ? (
+                              <Loader2 className="animate-spin" size={16} />
+                            ) : (
+                              <Sparkles size={16} className="text-whitecolor" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </>
             )}
-            {isAnalyzing && (
-              <div className="flex flex-col items-center justify-center h-full space-y-4">
-                <Loader2 className="animate-spin text-primary" size={32} />
-                <p className="text-sm text-muted animate-pulse">
-                  Analyzing your resume...
-                </p>
-              </div>
-            )}
-            {analysisResult && !isAnalyzing && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-lg text-tertiary">
-                    Analysis Report
-                  </h3>
-                  <button
-                    onClick={handleRunAnalysis}
-                    className="p-1.5 hover:bg-whitecolor dark:hover:bg-background rounded-full text-muted transition-colors"
-                    title="Re-analyze"
-                  >
-                    <RefreshCcw size={16} />
-                  </button>
+
+            {/* --- SCENARIO 2: RESULT VIEW --- */}
+            {view === "result" && (
+              <div className="flex-1 overflow-y-auto p-4 pb-10 animate-in fade-in slide-in-from-right-4 duration-300">
+                {/* Job Context Box */}
+                <div className="mb-6 bg-whitecolor dark:bg-background border border-border rounded-xl overflow-hidden shadow-sm group">
+                  <div className="flex items-center justify-between p-3 border-b border-border/50 bg-secondary/30">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wider">
+                      <Briefcase size={14} />
+                      Job Context
+                    </div>
+                    {/* Minimal Copy Button */}
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(jobDescription);
+                        const icon = document.getElementById("copy-icon");
+                        const check = document.getElementById("check-icon");
+                        if (icon && check) {
+                          icon.style.display = "none";
+                          check.style.display = "block";
+                          setTimeout(() => {
+                            icon.style.display = "block";
+                            check.style.display = "none";
+                          }, 2000);
+                        }
+                      }}
+                      className="text-muted hover:text-primary transition-colors p-1.5 rounded hover:bg-background"
+                      title="Copy Job Description"
+                    >
+                      <Copy size={14} id="copy-icon" />
+                      <Check
+                        size={14}
+                        id="check-icon"
+                        className="hidden text-primary"
+                      />
+                    </button>
+                  </div>
+
+                  <div className="p-3 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent opacity-80 group-hover:opacity-100 transition-opacity">
+                    <p className="text-xs text-muted whitespace-pre-wrap leading-relaxed">
+                      {jobDescription}
+                    </p>
+                  </div>
                 </div>
+
+                {/* Analysis Result HTML - STYLED WITH YOUR CODE */}
                 <div
                   className="text-sm text-muted leading-relaxed [&_h4]:font-bold [&_h4]:text-tertiary [&_h4]:mt-6 [&_h4]:mb-3 [&_h4]:text-base [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_ul]:mb-4 [&_li]:pl-1 [&_strong]:font-semibold [&_strong]:text-primary"
-                  dangerouslySetInnerHTML={{ __html: analysisResult }}
+                  dangerouslySetInnerHTML={{ __html: analysisResult || "" }}
                 />
               </div>
             )}
