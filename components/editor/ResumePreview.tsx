@@ -100,7 +100,7 @@ export default function ResumePreview({
 
       <div
         id="resume-preview"
-        className="bg-transparent w-[210mm] min-h-[297mm] pb-4 overflow-hidden print:shadow-none print:m-0"
+        className="bg-transparent w-[210mm] min-h-[297mm] pb-4 overflow-hidden print:shadow-none print:m-0 print:pb-0"
       >
         <div className=" h-full">
           <CurrentTemplate resume={resume} />

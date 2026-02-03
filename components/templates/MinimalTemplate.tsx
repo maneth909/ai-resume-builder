@@ -19,7 +19,6 @@ const PAGE_PADDING_TOP = 50;
 const PAGE_PADDING_BOTTOM = 50;
 const USABLE_PAGE_HEIGHT =
   A4_HEIGHT_PX - PAGE_PADDING_TOP - PAGE_PADDING_BOTTOM;
-// Page 1 has a header, subsequent pages do not
 const FIRST_PAGE_USABLE_HEIGHT = USABLE_PAGE_HEIGHT - HEADER_HEIGHT;
 
 // --- TYPES ---
@@ -58,21 +57,25 @@ const SectionHeader = ({ title }: { title: string }) => (
   </div>
 );
 
+// --- RESUME PAGE ---
 const ResumePage = ({
   children,
   id,
+  isLastPage, // New Prop
 }: {
   children: React.ReactNode;
   id?: string;
+  isLastPage?: boolean;
 }) => (
   <div
     id={id}
-    className="bg-white w-[210mm] h-[297mm] shadow-md print:shadow-none print:m-0 text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page flex flex-col"
     style={{
-      minHeight: "297mm",
-      maxHeight: "297mm",
-      height: "297mm",
+      printColorAdjust: "exact",
+      WebkitPrintColorAdjust: "exact",
     }}
+    className={`bg-white w-[210mm] h-[297mm] shadow-md print:shadow-none print:m-0 text-sm relative overflow-hidden mb-8 print:mb-0 flex flex-col ${
+      !isLastPage ? "print:break-after-page" : ""
+    }`}
   >
     {children}
   </div>
@@ -115,7 +118,6 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
         let currentHeight = 0;
         let isFirstPage = true;
 
-        // Calculate max height for the current page
         let maxPageHeight = FIRST_PAGE_USABLE_HEIGHT;
 
         const flushPage = () => {
@@ -123,11 +125,10 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
           currentPage = [];
           currentHeight = 0;
           isFirstPage = false;
-          maxPageHeight = USABLE_PAGE_HEIGHT; // Subsequent pages have more room
+          maxPageHeight = USABLE_PAGE_HEIGHT;
         };
 
         nodes.forEach((node) => {
-          // Get height + margin buffer
           const h = node.offsetHeight + 15;
 
           if (currentHeight + h > maxPageHeight) {
@@ -153,7 +154,6 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
       }
     };
 
-    // Small delay ensures DOM is fully rendered before measuring
     const timer = setTimeout(measureAndPaginate, 50);
     return () => clearTimeout(timer);
   }, [resume]);
@@ -297,11 +297,9 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
   };
 
   // --- ORDERING LOGIC ---
-  // Define the single-column flow order
   const getMeasurementItems = () => {
     const items: any[] = [];
 
-    // 1. Summary
     if (personal_info?.summary) {
       items.push(
         <div key="sum" data-type="summary">
@@ -309,8 +307,6 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
         </div>,
       );
     }
-
-    // 2. Work Experience
     if (work_experience.length > 0) {
       items.push(
         <div key="work-h" data-type="work_header">
@@ -325,8 +321,6 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
         );
       });
     }
-
-    // 3. Education
     if (education.length > 0) {
       items.push(
         <div key="edu-h" data-type="education_header">
@@ -341,8 +335,6 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
         );
       });
     }
-
-    // 4. Certifications
     if (certifications.length > 0) {
       items.push(
         <div key="cert-h" data-type="certs_header">
@@ -357,8 +349,6 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
         );
       });
     }
-
-    // 5. Skills
     if (skills.length > 0) {
       items.push(
         <div key="skill-h" data-type="skills_header">
@@ -371,8 +361,6 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
         </div>,
       );
     }
-
-    // 6. Languages
     if (languages.length > 0) {
       items.push(
         <div key="lang-h" data-type="languages_header">
@@ -385,8 +373,6 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
         </div>,
       );
     }
-
-    // 7. References
     if (resume_references.length > 0) {
       items.push(
         <div key="ref-h" data-type="refs_header">
@@ -406,11 +392,11 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
   };
 
   return (
-    <div className="flex flex-col items-center print:p-0 print:bg-white print:block">
+    <div className="flex flex-col items-center bg-transparent print:p-0 print:bg-white print:block">
       {/* 1. HIDDEN MEASURER */}
       <div
         ref={measureRef}
-        className="fixed top-0 left-[-9999px] opacity-0 pointer-events-none z-[-1]"
+        className="fixed top-0 left-[-9999px] opacity-0 pointer-events-none z-[-1] print:hidden"
         aria-hidden="true"
         style={{
           width: "210mm",
@@ -434,13 +420,15 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
           const isFirstPage = pageIndex === 0;
 
           return (
-            <ResumePage key={`page-${pageIndex}`}>
+            <ResumePage
+              key={`page-${pageIndex}`}
+              isLastPage={pageIndex === pages.length - 1}
+            >
               <div className="h-full flex flex-col px-10 py-10">
                 {/* HEADER (Only on Page 1) */}
                 {isFirstPage && (
                   <header className="border-b border-gray-300 pb-6 mb-2 shrink-0">
                     <div className="flex justify-between items-end">
-                      {/* Name & Title */}
                       <div className="max-w-[60%]">
                         <h1
                           className="text-4xl font-bold tracking-widest mb-2"
@@ -453,7 +441,6 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
                         </p>
                       </div>
 
-                      {/* Right: Contact Info */}
                       <div className="text-right text-[9pt] leading-relaxed text-gray-600">
                         {personal_info?.location && (
                           <div className="flex items-center justify-end gap-2">

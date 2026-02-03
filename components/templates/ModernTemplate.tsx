@@ -69,21 +69,25 @@ const SectionHeader = ({
   </div>
 );
 
+// --- FIXED RESUME PAGE ---
 const ResumePage = ({
   children,
   id,
+  isLastPage,
 }: {
   children: React.ReactNode;
   id?: string;
+  isLastPage?: boolean;
 }) => (
   <div
     id={id}
-    className="resume-page w-[210mm] h-[297mm] shadow-md bg-white print:shadow-none print:m-0 font-sans text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page"
     style={{
-      minHeight: "297mm",
-      maxHeight: "297mm",
-      height: "297mm",
+      printColorAdjust: "exact",
+      WebkitPrintColorAdjust: "exact",
     }}
+    className={`bg-white resume-page w-[210mm] h-[297mm] shadow-md print:shadow-none print:m-0 font-sans text-sm relative overflow-hidden mb-8 print:mb-0 flex flex-col ${
+      !isLastPage ? "print:break-after-page" : ""
+    }`}
   >
     {children}
   </div>
@@ -108,7 +112,6 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
     return isNaN(date.getTime()) ? "" : format(date, "MMM yyyy");
   };
 
-  // --- STATE ---
   const [pages, setPages] = useState<PageContent[]>([{ left: [], right: [] }]);
   const [isCalculated, setIsCalculated] = useState(false);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -124,7 +127,6 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
     }
   `;
     document.head.appendChild(style);
-
     return () => {
       style.remove();
     };
@@ -132,9 +134,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
 
   // --- PAGINATION LOGIC ---
   useLayoutEffect(() => {
-    if (!measureRef.current) {
-      return;
-    }
+    if (!measureRef.current) return;
 
     const measureAndPaginate = () => {
       try {
@@ -144,7 +144,6 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         const rightColumn = measureRef.current!.querySelector(
           '[data-column="right"]',
         );
-
         const leftNodes = leftColumn
           ? (Array.from(leftColumn.children) as HTMLElement[])
           : [];
@@ -215,10 +214,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
           isFirstPage = false;
         }
 
-        if (newPages.length === 0) {
-          newPages.push({ left: [], right: [] });
-        }
-
+        if (newPages.length === 0) newPages.push({ left: [], right: [] });
         setPages(newPages);
         setIsCalculated(true);
       } catch (error) {
@@ -229,14 +225,12 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
     };
 
     const timer = setTimeout(measureAndPaginate, 150);
-
     return () => clearTimeout(timer);
   }, [resume]);
 
   // --- RENDER ITEM HELPER ---
   const renderItemContent = (type: RenderItemType, index: number) => {
     switch (type) {
-      // LEFT COLUMN ITEMS
       case "education_header":
         return <SectionHeader title="Education" className="mt-[-3px]" />;
       case "education_item":
@@ -244,9 +238,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         if (!edu) return null;
         return (
           <div className="text-sm mb-5 pl-1.5">
-            {/* Increased to text-sm */}
             <p className="font-bold leading-tight mb-1">{edu.school}</p>
-            {/* Increased to text-xs */}
             <p className="italic text-[#98c1d9] mb-1 text-xs">{edu.degree}</p>
             <p className="opacity-75 text-[11px]">
               {formatDate(edu.start_date)} —{" "}
@@ -262,7 +254,6 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
             {skills?.map((skill) => (
               <span
                 key={skill.id}
-                // Increased to text-xs
                 className="px-2 py-1 border border-white/20 text-white text-xs font-medium tracking-tight rounded-sm"
               >
                 {skill.name}
@@ -277,7 +268,6 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         if (!lang) return null;
         return (
           <div className="flex justify-between items-end border-b border-white/10 pb-1 mb-1 pl-1.5">
-            {/* Increased to text-sm */}
             <span className="text-sm font-bold">{lang.name}</span>
             <span className="text-xs italic text-[#98c1d9]">
               {lang.proficiency}
@@ -306,20 +296,16 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         if (!ref) return null;
         return (
           <div className="text-xs mb-1 pl-1.5">
-            {/* Increased to text-xs/sm */}
             <p className="font-bold text-[#98c1d9] text-sm">{ref.name}</p>
             <p className="italic text-xs mb-0.5 opacity-90">{ref.position}</p>
             <p className="opacity-75 break-words">{ref.email}</p>
             <p className="opacity-75">{ref.phone}</p>
           </div>
         );
-
-      // RIGHT COLUMN ITEMS
       case "summary":
         return (
           <section className="mb-4">
             <SectionHeader title="Summary" className="mt-[-3px]" />
-            {/* Increased to text-sm */}
             <p className="text-sm leading-relaxed text-gray-600 pl-1.5">
               {personal_info?.summary}
             </p>
@@ -333,17 +319,14 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         return (
           <div className="border-l-4 border-[#1e2d42] pl-5 relative mb-4">
             <div className="flex justify-between items-baseline mb-1">
-              {/* Increased to text-base */}
               <h4 className="font-bold text-base text-[#1e2d42] tracking-tight">
                 {exp.company}
               </h4>
-              {/* Increased to text-xs */}
               <span className="text-xs font-bold text-gray-400">
                 {formatDate(exp.start_date)} -{" "}
                 {exp.is_current ? "Present" : formatDate(exp.end_date)}
               </span>
             </div>
-            {/* Increased to text-sm */}
             <p className="text-sm font-bold text-[#3d5a80] mb-2 italic ">
               {exp.job_title}
             </p>
@@ -395,90 +378,70 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
     }
   };
 
-  // Generate all content items for LEFT and RIGHT columns
-  const getLeftColumnItems = (): {
-    type: RenderItemType;
-    index: number;
-    column: "left";
-  }[] => {
+  const getLeftColumnItems = () => {
     const items: { type: RenderItemType; index: number; column: "left" }[] = [];
-
-    if (education && education.length > 0) {
+    if (education?.length) {
       items.push({ type: "education_header", index: 0, column: "left" });
-      education.forEach((_, i) => {
-        items.push({ type: "education_item", index: i, column: "left" });
-      });
+      education.forEach((_, i) =>
+        items.push({ type: "education_item", index: i, column: "left" }),
+      );
     }
-
-    if (skills && skills.length > 0) {
+    if (skills?.length) {
       items.push({ type: "skills_header", index: 0, column: "left" });
       items.push({ type: "skills_section", index: 0, column: "left" });
     }
-
-    if (languages && languages.length > 0) {
+    if (languages?.length) {
       items.push({ type: "languages_header", index: 0, column: "left" });
-      languages.forEach((_, i) => {
-        items.push({ type: "languages_item", index: i, column: "left" });
-      });
+      languages.forEach((_, i) =>
+        items.push({ type: "languages_item", index: i, column: "left" }),
+      );
     }
-
-    if (honors_awards && honors_awards.length > 0) {
+    if (honors_awards?.length) {
       items.push({ type: "honors_header", index: 0, column: "left" });
-      honors_awards.forEach((_, i) => {
-        items.push({ type: "honors_item", index: i, column: "left" });
-      });
+      honors_awards.forEach((_, i) =>
+        items.push({ type: "honors_item", index: i, column: "left" }),
+      );
     }
-
-    if (resume_references && resume_references.length > 0) {
+    if (resume_references?.length) {
       items.push({ type: "references_header", index: 0, column: "left" });
-      resume_references.slice(0, 2).forEach((_, i) => {
-        items.push({ type: "references_item", index: i, column: "left" });
-      });
+      resume_references
+        .slice(0, 2)
+        .forEach((_, i) =>
+          items.push({ type: "references_item", index: i, column: "left" }),
+        );
     }
-
     return items;
   };
 
-  const getRightColumnItems = (): {
-    type: RenderItemType;
-    index: number;
-    column: "right";
-  }[] => {
+  const getRightColumnItems = () => {
     const items: { type: RenderItemType; index: number; column: "right" }[] =
       [];
-
-    if (personal_info?.summary) {
+    if (personal_info?.summary)
       items.push({ type: "summary", index: 0, column: "right" });
-    }
-
-    if (work_experience.length > 0) {
+    if (work_experience?.length) {
       items.push({ type: "work_header", index: 0, column: "right" });
-      work_experience.forEach((_, i) => {
-        items.push({ type: "work_item", index: i, column: "right" });
-      });
+      work_experience.forEach((_, i) =>
+        items.push({ type: "work_item", index: i, column: "right" }),
+      );
     }
-
-    if (extra_curricular.length > 0) {
+    if (extra_curricular?.length) {
       items.push({ type: "extra_header", index: 0, column: "right" });
-      extra_curricular.forEach((_, i) => {
-        items.push({ type: "extra_item", index: i, column: "right" });
-      });
+      extra_curricular.forEach((_, i) =>
+        items.push({ type: "extra_item", index: i, column: "right" }),
+      );
     }
-
-    if (certifications.length > 0) {
+    if (certifications?.length) {
       items.push({ type: "cert_header", index: 0, column: "right" });
-      certifications.forEach((_, i) => {
-        items.push({ type: "cert_item", index: i, column: "right" });
-      });
+      certifications.forEach((_, i) =>
+        items.push({ type: "cert_item", index: i, column: "right" }),
+      );
     }
-
     return items;
   };
 
   const leftItems = getLeftColumnItems();
   const rightItems = getRightColumnItems();
 
-  // If no content at all, show a placeholder
   if (leftItems.length === 0 && rightItems.length === 0) {
     return (
       <ResumePage>
@@ -490,14 +453,12 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
   }
 
   return (
-    <div className="flex flex-col items-center">
-      {/* --- HIDDEN MEASURER --- */}
+    <div className="flex flex-col items-center print:p-0 print:bg-white print:block">
       <div
         ref={measureRef}
-        className="fixed top-0 left-[-9999px] opacity-0 pointer-events-none z-[-1]"
+        className="fixed top-0 left-[-9999px] opacity-0 pointer-events-none z-[-1] print:hidden"
         aria-hidden="true"
       >
-        {/* Left column measurer */}
         <div
           data-column="left"
           style={{
@@ -516,8 +477,6 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
             </div>
           ))}
         </div>
-
-        {/* Right column measurer */}
         <div
           data-column="right"
           style={{
@@ -538,9 +497,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
         </div>
       </div>
 
-      {/* --- VISIBLE PAGES --- */}
       {!isCalculated ? (
-        // LOADING STATE
         <ResumePage>
           <div className="flex items-center justify-center h-full text-gray-300 animate-pulse uppercase tracking-widest font-bold">
             Calculating layout...
@@ -549,10 +506,11 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
       ) : (
         pages.map((page, pageIndex) => {
           const isFirstPage = pageIndex === 0;
-
           return (
-            <ResumePage key={`page-${pageIndex}`}>
-              {/* HEADER (Only Page 1) */}
+            <ResumePage
+              key={`page-${pageIndex}`}
+              isLastPage={pageIndex === pages.length - 1}
+            >
               {isFirstPage && (
                 <header
                   className="w-full p-8 pt-10 shrink-0 flex flex-col justify-center min-h-[140px]"
@@ -594,7 +552,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
                       )}
                       {personal_info?.linkedin && (
                         <span className="flex items-center justify-end gap-2">
-                          {personal_info.linkedin}
+                          {personal_info.linkedin}{" "}
                           <Linkedin size={12} className="text-[#98c1d9]" />
                         </span>
                       )}
@@ -603,7 +561,6 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
                 </header>
               )}
 
-              {/* SPACER FOR PAGE 2+ */}
               {!isFirstPage && (
                 <div
                   className="h-10 w-full shrink-0"
@@ -611,9 +568,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
                 ></div>
               )}
 
-              {/* TWO COLUMN LAYOUT */}
-              <div className="flex flex-row h-full overflow-hidden">
-                {/* LEFT SIDEBAR */}
+              <div className="flex flex-row flex-1 overflow-hidden">
                 <aside
                   className="w-[32%] p-6 pt-6 h-full text-white shrink-0 overflow-hidden"
                   style={{ backgroundColor: COLORS.sidebar }}
@@ -627,8 +582,6 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
                       </div>
                     ))}
                 </aside>
-
-                {/* RIGHT MAIN COLUMN */}
                 <main className="flex-1 p-8 pt-6 h-full overflow-hidden">
                   <div>
                     {page.right &&

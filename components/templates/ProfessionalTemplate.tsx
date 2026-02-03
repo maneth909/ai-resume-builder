@@ -61,16 +61,25 @@ const SectionHeader = ({ title }: { title: string }) => (
   </div>
 );
 
+// --- RESUME PAGE COMPONENT ---
 const ResumePage = ({
   children,
   id,
+  isLastPage,
 }: {
   children: React.ReactNode;
   id?: string;
+  isLastPage?: boolean;
 }) => (
   <div
     id={id}
-    className="bg-white resume-page w-[210mm] h-[297mm] shadow-md  print:shadow-none print:m-0 font-sans text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page flex flex-col"
+    style={{
+      printColorAdjust: "exact",
+      WebkitPrintColorAdjust: "exact",
+    }}
+    className={`bg-white resume-page w-[210mm] h-[297mm] shadow-md print:shadow-none print:m-0 font-sans text-sm relative overflow-hidden mb-8 print:mb-0 flex flex-col ${
+      !isLastPage ? "print:break-after-page" : ""
+    }`}
   >
     {children}
   </div>
@@ -514,12 +523,11 @@ export default function ProfessionalTemplate({ resume }: { resume: Resume }) {
   const rightItems = getRightColumnItems();
 
   return (
-    <div className="flex flex-col items-center  print:p-0 print:bg-white print:block">
+    <div className="flex flex-col items-center bg-transparent print:p-0 print:bg-white print:block">
       {/* 1. HIDDEN MEASURER */}
-      {/* Ensure layout matches the real page (flex + gap) to calculate heights accurately */}
       <div
         ref={measureRef}
-        className="fixed top-0 left-[-9999px] opacity-0 pointer-events-none z-[-1]"
+        className="fixed top-0 left-[-9999px] opacity-0 pointer-events-none z-[-1] print:hidden"
         aria-hidden="true"
         style={{ width: "210mm", padding: "3rem" }}
       >
@@ -542,7 +550,10 @@ export default function ProfessionalTemplate({ resume }: { resume: Resume }) {
         </ResumePage>
       ) : (
         pages.map((page, pageIndex) => (
-          <ResumePage key={`page-${pageIndex}`}>
+          <ResumePage
+            key={`page-${pageIndex}`}
+            isLastPage={pageIndex === pages.length - 1}
+          >
             {/* DYNAMIC HEADER */}
             {pageIndex === 0 && (
               <header className="h-[150px] w-full flex items-center justify-between shrink-0">
