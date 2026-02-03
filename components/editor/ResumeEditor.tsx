@@ -9,14 +9,13 @@ import { ResumeProvider, useResume } from "@/context/ResumeContext";
 import SaveStatus from "@/components/editor/SaveStatus";
 import { updateResumeTitle } from "@/actions/resume";
 
-import { analyzeResume } from "@/actions/ai";
+import { analyzeResume, getAiMode } from "@/actions/ai";
 import {
   getRecentAnalyses,
   saveAnalysis,
   deleteAnalysis,
 } from "@/actions/analysis";
 
-// --- NEW IMPORTS ---
 import { useReactToPrint } from "react-to-print";
 
 import PersonalInfoForm from "@/components/form/PersonalInfoForm";
@@ -29,6 +28,9 @@ import CertificationForm from "@/components/form/CertificationForm";
 import HonorAwardForm from "@/components/form/HonorAwardForm";
 import ExtraCurricularForm from "@/components/form/ExtraCurricularForm";
 import ReferenceForm from "@/components/form/ReferenceForm";
+
+import ApiKeyInput from "@/components/ApiKeyInput";
+import ApiKeyModal from "@/components/ApiKeyModal";
 
 import {
   User,
@@ -50,6 +52,12 @@ import {
   RefreshCcw,
   Loader2,
   Check,
+  Key,
+  Eye,
+  EyeOff,
+  Trash2,
+  AlertCircle,
+  AlertTriangle,
 } from "lucide-react";
 
 // --- Sections config ---
@@ -130,128 +138,147 @@ function EditorContent({ resume }: ResumeEditorProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
-  // use 'resumeData' for the Preview so it updates live
   const { resumeData } = useResume();
 
-  // get state from URL
   const activeSection =
     (searchParams.get("section") as SectionKey) || "personal_info";
   const isAIOpen = searchParams.get("ai") === "true";
-
   const activeSectionData = SECTIONS.find((s) => s.key === activeSection);
 
-  // helper to update URL without reloading
   const updateState = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
+    if (value) params.set(key, value);
+    else params.delete(key);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const [resumeTitle, setResumeTitle] = useState(resume.title);
   const handleTitleBlur = async () => {
-    if (resumeTitle.trim() === "") {
-      setResumeTitle(resume.title);
-      return;
-    }
-    if (resumeTitle !== resume.title) {
+    if (resumeTitle.trim() === "") setResumeTitle(resume.title);
+    else if (resumeTitle !== resume.title)
       await updateResumeTitle(resume.id, resumeTitle);
-    }
   };
 
+  // --- AI STATE ---
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
   const [jobDescription, setJobDescription] = useState("");
-
   const [history, setHistory] = useState<any[]>([]);
-  // ERROR WAS HERE: It might have been defaulting to "form" or switching to it
-  const [view, setView] = useState<"history" | "result">("history");
+  const [view, setView] = useState<"history" | "result" | "settings">(
+    "history",
+  );
+  const [apiKey, setApiKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [isSystemError, setIsSystemError] = useState(false);
 
-  // Load history on mount
+  const [aiMode, setAiMode] = useState("USER");
+
+  // --- DIALOG STATE (NEW) ---
+  const [dialog, setDialog] = useState<{
+    isOpen: boolean;
+    type: "delete_analysis" | "remove_key" | null;
+    itemId?: string; // Used if deleting specific history item
+  }>({ isOpen: false, type: null });
+
   useEffect(() => {
-    async function loadHistory() {
+    async function init() {
+      const mode = await getAiMode(); // Fetch mode from server
+      setAiMode(mode);
+
       const data = await getRecentAnalyses(resume.id);
       setHistory(data);
-      // REMOVED THE LINE THAT CAUSED THE BUG:
-      // if (data.length === 0) setView("form");  <-- THIS WAS DELETING YOUR UI
+
+      // Only load local key if allowed
+      if (mode !== "SYSTEM") {
+        const storedKey = localStorage.getItem("user_groq_api_key");
+        if (storedKey) setApiKey(storedKey);
+      }
     }
-    loadHistory();
+    init();
   }, [resume.id]);
 
-  const handleRunAnalysis = async () => {
+  const handleSaveKey = (key: string) => {
+    setApiKey(key);
+    if (key.trim()) localStorage.setItem("user_groq_api_key", key);
+    else localStorage.removeItem("user_groq_api_key");
+  };
+
+  // --- ACTION HANDLERS ---
+  const handleRunAnalysis = async (keyOverride?: string) => {
     setIsAnalyzing(true);
+
+    // Use the override key (if provided) or the state key
+    const effectiveKey = keyOverride ?? apiKey;
+
     try {
-      const result = await analyzeResume(resumeData, jobDescription);
+      const result = await analyzeResume(
+        resumeData,
+        jobDescription,
+        effectiveKey,
+      );
       setAnalysisResult(result);
-
-      // SAVE TO SUPABASE
       await saveAnalysis(resume.id, jobDescription, result);
-
-      // Refresh local history
       const updatedHistory = await getRecentAnalyses(resume.id);
       setHistory(updatedHistory);
-
       setView("result");
-    } catch (error) {
-      /* ... */
+
+      // If successful, close the modal just in case
+      setShowApiKeyModal(false);
+    } catch (error: any) {
+      // 1. Check for System Error (Server Config issue)
+      if (error.message.includes("System Error")) {
+        setIsSystemError(true);
+        setShowApiKeyModal(true);
+      }
+      // 2. Check for User Error (Invalid Key)
+      else if (
+        error.message.includes("Invalid API Key") ||
+        error.message.includes("add your Groq API Key")
+      ) {
+        setIsSystemError(false);
+        setShowApiKeyModal(true);
+      }
+      // 3. Other Errors
+      else {
+        alert(error.message || "Analysis failed");
+      }
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  // --- PRINTING LOGIC START ---
+  // Unified Confirm Handler
+  const executeConfirmation = async () => {
+    if (dialog.type === "delete_analysis" && dialog.itemId) {
+      // Delete History Item
+      await deleteAnalysis(dialog.itemId);
+      setHistory((prev) => prev.filter((i) => i.id !== dialog.itemId));
+    } else if (dialog.type === "remove_key") {
+      // Delete API Key
+      handleSaveKey("");
+    }
+    // Close dialog
+    setDialog({ isOpen: false, type: null });
+  };
+
+  // --- PRINTING ---
   const [isPrinting, setIsPrinting] = useState(false);
   const printContentRef = useRef<HTMLDivElement>(null);
-
-  // 2. Configure the print hook
   const reactToPrintTrigger = useReactToPrint({
     contentRef: printContentRef,
     documentTitle: resumeTitle || "Resume",
-    onAfterPrint: () => {
-      // Turn off spinner when done
-      setIsPrinting(false);
-    },
-    onPrintError: (error: any) => {
-      console.error("Print failed:", error);
-      setIsPrinting(false);
-    },
-    pageStyle: `
-      @page {
-        size: A4 portrait;
-        margin: 0;
-      }
-      @media print {
-        html, body {
-          height: 100%;
-          width: 100%;
-          margin: 0 !important;
-          padding: 0 !important;
-          overflow: visible !important;
-        }
-        * {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-      }
-    `,
+    onAfterPrint: () => setIsPrinting(false),
+    onPrintError: () => setIsPrinting(false),
+    pageStyle: `@page { size: A4 portrait; margin: 0; } @media print { html, body { height: 100%; width: 100%; margin: 0 !important; padding: 0 !important; overflow: visible !important; } }`,
   } as any);
-
-  // 3. Create a wrapper function to force the spinner UI
   const handlePrint = () => {
     setIsPrinting(true);
-
-    setTimeout(() => {
-      reactToPrintTrigger();
-    }, 100);
+    setTimeout(() => reactToPrintTrigger(), 100);
   };
-  // --- PRINTING LOGIC END ---
 
   return (
-    <div className="flex flex-col h-screen bg-whitecolor dark:bg-background text-tertiary transition-colors overflow-hidden">
+    <div className="flex flex-col h-screen bg-whitecolor dark:bg-background text-tertiary transition-colors overflow-hidden relative">
       {/* ---------------- APP BAR ---------------- */}
       <header className="h-16 border-b border-border flex items-center justify-between px-4 bg-whitecolor dark:bg-background shrink-0 z-20 transition-all">
         <div className="flex items-center gap-4">
@@ -267,36 +294,28 @@ function EditorContent({ resume }: ResumeEditorProps) {
               onChange={(e) => setResumeTitle(e.target.value)}
               onBlur={handleTitleBlur}
               className="font-semibold text-tertiary truncate max-w-[200px] sm:max-w-md bg-transparent border-none focus:ring-0 focus:outline-none p-0 leading-tight hover:underline cursor-text decoration-dashed underline-offset-4 decoration-muted/50"
-              title="Click to rename"
             />
             <div className="h-4 flex items-center">
               <SaveStatus />
             </div>
           </div>
         </div>
-
         <div className="flex items-center gap-2">
-          {/* DOWNLOAD BUTTON */}
           <button
             onClick={() => handlePrint()}
             disabled={isPrinting}
-            className="px-3 py-2 text-sm font-medium text-whitecolor dark:text-background bg-tertiary rounded-md hover:opacity-90 flex items-center gap-2 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-2 text-sm font-medium text-whitecolor dark:text-background bg-tertiary rounded-md hover:opacity-90 flex items-center gap-2 disabled:opacity-50"
           >
             {isPrinting ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                <span className="hidden sm:inline">Preparing...</span>
-              </>
+              <Loader2 size={16} className="animate-spin" />
             ) : (
-              <>
-                <Download size={16} />
-                <span className="hidden sm:inline">Download PDF</span>
-              </>
+              <Download size={16} />
             )}
+            <span className="hidden sm:inline">
+              {isPrinting ? "Preparing..." : "Download PDF"}
+            </span>
           </button>
-
           <div className="w-px h-8 bg-border mx-1" />
-
           <button
             onClick={() => updateState("ai", isAIOpen ? null : "true")}
             className={`p-2 rounded-md border transition-all ${
@@ -304,18 +323,17 @@ function EditorContent({ resume }: ResumeEditorProps) {
                 ? "bg-primary text-whitecolor border-primary"
                 : "bg-transparent text-primary border-primary hover:bg-primary/10"
             }`}
-            title="AI Analysis"
           >
             <Sparkles size={18} />
           </button>
         </div>
       </header>
 
-      {/* ---------------- Main layout ---------------- */}
+      {/* ---------------- LAYOUT ---------------- */}
       <div className="flex flex-1 overflow-hidden">
-        {/* COLUMN 1: side bar navigation */}
+        {/* NAV */}
         <div
-          className={`bg-whitecolor dark:bg-secondary border-r border-border flex flex-col overflow-y-auto shrink-0 transition-[width] duration-300 ease-in-out ${
+          className={`bg-whitecolor dark:bg-secondary border-r border-border flex flex-col overflow-y-auto shrink-0 transition-[width] duration-300 ${
             isAIOpen ? "w-20 items-center" : "w-51"
           }`}
         >
@@ -327,7 +345,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
             >
               Sections
             </p>
-
             {SECTIONS.map((section) => {
               const isActive = activeSection === section.key;
               return (
@@ -352,7 +369,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
                   >
                     {section.icon}
                   </span>
-
                   <span
                     className={`text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                       isAIOpen
@@ -368,9 +384,9 @@ function EditorContent({ resume }: ResumeEditorProps) {
           </div>
         </div>
 
-        {/* COLUMN 2: FORM AREA */}
+        {/* FORM */}
         <div
-          className={`bg-whitecolor dark:bg-secondary border-r border-border overflow-y-auto p-6 scrollbar-hide shrink-0 transition-[width] duration-300 ease-in-out ${
+          className={`bg-whitecolor dark:bg-secondary border-r border-border overflow-y-auto p-6 scrollbar-hide shrink-0 transition-[width] duration-300 ${
             isAIOpen ? "w-[380px]" : "w-[500px]"
           }`}
         >
@@ -387,7 +403,6 @@ function EditorContent({ resume }: ResumeEditorProps) {
               {activeSectionData?.description}
             </p>
           </div>
-
           {activeSection === "personal_info" && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <PersonalInfoForm
@@ -477,53 +492,57 @@ function EditorContent({ resume }: ResumeEditorProps) {
             )}
         </div>
 
-        {/* COLUMN 3: PREVIEW AREA */}
-        <div className="flex-1 bg-secondary overflow-y-auto p-8 flex justify-center transition-all duration-300 ease-in-out pt-16 print:p-0 print:bg-white print:overflow-visible">
+        {/* PREVIEW */}
+        <div className="flex-1 bg-secondary overflow-y-auto p-8 flex justify-center transition-all duration-300 pt-16 print:p-0 print:bg-white print:overflow-visible">
           <div
             className={`origin-top shadow-2xl transition-all duration-300 print:scale-100 print:shadow-none print:transform-none ${
               isAIOpen ? "scale-[0.75] xl:scale-[0.85]" : "scale-[0.85]"
             }`}
           >
-            {/* WRAP PREVIEW IN THE REF */}
             <div ref={printContentRef}>
               <ResumePreview resume={resumeData} enableThemeSwitching={true} />
             </div>
           </div>
         </div>
 
-        {/* COLUMN 4: AI Sidebar */}
+        {/* AI SIDEBAR */}
         <div
           className={`bg-whitecolor dark:bg-secondary border-l border-border transition-[width,opacity] duration-300 ease-in-out overflow-hidden flex flex-col ${
             isAIOpen ? "w-[380px] opacity-100" : "w-0 opacity-0"
           }`}
         >
           {/* HEADER */}
-          <div className="h-14 border-b border-border flex items-center justify-between px-4 shrink-0 bg-whitecolor/80 dark:bg-secondary/80 backdrop-blur-md z-20">
-            <div className="flex items-center gap-3">
-              {view === "result" && (
+          <div className="h-14 border-b border-border flex items-center justify-center px-4 shrink-0 bg-whitecolor/80 dark:bg-secondary/80 backdrop-blur-md z-20 relative">
+            {/* LEFT ALIGNED BUTTONS (Absolute) */}
+            <div className="absolute left-4 flex items-center gap-3">
+              {(view === "result" || view === "settings") && (
                 <button
                   onClick={() => {
                     setView("history");
-                    setJobDescription(""); // Clear input on back
+                    if (view === "result") setJobDescription("");
                   }}
                   className="p-1.5 -ml-2 rounded-full text-muted hover:bg-tertiary/5 hover:text-tertiary transition-colors"
-                  title="Back to History"
                 >
                   <ArrowLeft size={18} />
                 </button>
               )}
-              <span className="text-sm font-bold text-tertiary tracking-tight">
-                {view === "result" ? "AI Feedback" : "Analysis History"}
-              </span>
             </div>
 
-            <div className="flex items-center gap-1">
-              {/* RE-ANALYZE BUTTON (Only visible in Result view) */}
+            {/* CENTERED TITLE */}
+            <span className="text-base font-bold text-primary tracking-tight">
+              {view === "result" && "AI Feedback"}
+              {view === "history" && "AI Analysis"}
+              {view === "settings" && "AI Settings"}
+            </span>
+
+            {/* RIGHT ALIGNED BUTTONS (Absolute) */}
+            <div className="absolute right-4 flex items-center gap-1">
+              {/* Refresh Button (Only on Result View) */}
               {view === "result" && (
                 <button
-                  onClick={handleRunAnalysis}
+                  onClick={() => handleRunAnalysis()}
                   disabled={isAnalyzing}
-                  className="p-2 rounded-full text-primary hover:bg-primary/10 transition-colors relative group"
+                  className="p-2 rounded-full text-muted hover:bg-tertiary/5 hover:text-tertiary transition-colors"
                   title="Re-analyze"
                 >
                   <RefreshCcw
@@ -533,22 +552,25 @@ function EditorContent({ resume }: ResumeEditorProps) {
                 </button>
               )}
 
-              <button
-                className="p-2 rounded-full text-muted hover:bg-tertiary/5 hover:text-tertiary transition-colors"
-                title="Settings"
-              >
-                <Settings size={18} />
-              </button>
+              {/* Settings Button */}
+              {aiMode !== "SYSTEM" && view === "history" && (
+                <button
+                  onClick={() => setView("settings")}
+                  className="p-2 rounded-full text-muted hover:bg-tertiary/5 hover:text-tertiary transition-colors"
+                  title="Settings"
+                >
+                  <Settings size={18} />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* MAIN CONTENT */}
+          {/* CONTENT */}
           <div className="flex-1 overflow-hidden relative bg-background/30 flex flex-col">
-            {/* --- SCENARIO 1: MAIN VIEW (History + Input) --- */}
+            {/* HISTORY */}
             {view === "history" && (
               <>
                 {history.length === 0 ? (
-                  // STATE A: EMPTY HISTORY (Centered Input)
                   <div className="flex-1 flex flex-col justify-center p-6 animate-in fade-in zoom-in-95 duration-300">
                     <div className="text-center space-y-2 mb-6">
                       <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
@@ -562,9 +584,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
                         resume.
                       </p>
                     </div>
-
                     <div className="space-y-4">
-                      {/* NEW FOOTER LAYOUT INPUT CONTAINER */}
                       <div className="w-full bg-whitecolor dark:bg-background border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm flex flex-col overflow-hidden">
                         <textarea
                           value={jobDescription}
@@ -572,9 +592,8 @@ function EditorContent({ resume }: ResumeEditorProps) {
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                               e.preventDefault();
-                              if (!isAnalyzing && jobDescription.trim()) {
+                              if (!isAnalyzing && jobDescription.trim())
                                 handleRunAnalysis();
-                              }
                             }
                           }}
                           placeholder="Paste the full Job Description here..."
@@ -582,21 +601,18 @@ function EditorContent({ resume }: ResumeEditorProps) {
                           className="w-full h-40 p-4 text-sm bg-transparent border-none focus:ring-0 resize-none placeholder:text-muted/40 outline-none scrollbar-thin"
                           autoFocus
                         />
-
-                        {/* INPUT FOOTER */}
                         <div className="flex items-center justify-between px-3 py-2 border-t border-border/40 bg-secondary/10">
                           <span className="text-[10px] text-muted font-medium">
                             {jobDescription.length} / 5000 chars
                           </span>
-
                           <button
-                            onClick={handleRunAnalysis}
+                            onClick={() => handleRunAnalysis()}
                             disabled={isAnalyzing || !jobDescription.trim()}
                             className="bg-primary text-whitecolor px-4 py-1.5 rounded-lg text-xs font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                           >
                             {isAnalyzing ? (
                               <>
-                                <Loader2 className="animate-spin" size={14} />
+                                <Loader2 className="animate-spin" size={14} />{" "}
                                 Analyzing...
                               </>
                             ) : (
@@ -614,16 +630,13 @@ function EditorContent({ resume }: ResumeEditorProps) {
                     </div>
                   </div>
                 ) : (
-                  // STATE B: HAS HISTORY (History Top, Styled Input Bottom)
                   <>
-                    {/* Top: History List */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-4">
                       <div className="flex items-center justify-between px-1 mb-2">
                         <h4 className="text-xs font-bold text-muted uppercase tracking-wider">
                           Recent ({history.length}/3)
                         </h4>
                       </div>
-
                       {history.map((item) => (
                         <div
                           key={item.id}
@@ -650,16 +663,15 @@ function EditorContent({ resume }: ResumeEditorProps) {
                               )}
                             </span>
                           </div>
-
+                          {/* DELETE BUTTON - Opens Dialog */}
                           <button
-                            onClick={async (e) => {
+                            onClick={(e) => {
                               e.stopPropagation();
-                              if (confirm("Delete this analysis?")) {
-                                await deleteAnalysis(item.id);
-                                setHistory((prev) =>
-                                  prev.filter((i) => i.id !== item.id),
-                                );
-                              }
+                              setDialog({
+                                isOpen: true,
+                                type: "delete_analysis",
+                                itemId: item.id,
+                              });
                             }}
                             className="absolute top-3 right-3 p-1.5 text-muted hover:text-red-500 hover:bg-red-500/10 rounded-md opacity-0 group-hover:opacity-100 transition-all"
                             title="Delete Analysis"
@@ -669,10 +681,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
                         </div>
                       ))}
                     </div>
-
-                    {/* Bottom: Fixed Input Area (FOOTER LAYOUT) */}
                     <div className="shrink-0 p-4 bg-whitecolor dark:bg-secondary border-t border-border z-10">
-                      {/* FOOTER LAYOUT CONTAINER */}
                       <div className="w-full bg-whitecolor dark:bg-background border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm flex flex-col overflow-hidden">
                         <textarea
                           value={jobDescription}
@@ -680,24 +689,20 @@ function EditorContent({ resume }: ResumeEditorProps) {
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                               e.preventDefault();
-                              if (!isAnalyzing && jobDescription.trim()) {
+                              if (!isAnalyzing && jobDescription.trim())
                                 handleRunAnalysis();
-                              }
                             }
                           }}
                           placeholder="Paste new Job Description..."
                           maxLength={5000}
                           className="w-full h-40 p-3 text-sm bg-transparent border-none focus:ring-0 resize-none placeholder:text-muted/40 outline-none scrollbar-thin"
                         />
-
-                        {/* FOOTER BAR */}
                         <div className="flex items-center justify-between px-3 py-2 border-t border-border/40 bg-secondary/10">
                           <span className="text-[10px] text-muted font-medium">
                             {jobDescription.length} / 5000 Chars
                           </span>
-
                           <button
-                            onClick={handleRunAnalysis}
+                            onClick={() => handleRunAnalysis()}
                             disabled={isAnalyzing || !jobDescription.trim()}
                             className="p-1.5 bg-primary text-whitecolor rounded-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all shadow-sm"
                             title="Run Analysis"
@@ -716,17 +721,14 @@ function EditorContent({ resume }: ResumeEditorProps) {
               </>
             )}
 
-            {/* --- SCENARIO 2: RESULT VIEW --- */}
+            {/* RESULT */}
             {view === "result" && (
               <div className="flex-1 overflow-y-auto p-4 pb-10 animate-in fade-in slide-in-from-right-4 duration-300">
-                {/* Job Context Box */}
                 <div className="mb-6 bg-whitecolor dark:bg-background border border-border rounded-xl overflow-hidden shadow-sm group">
                   <div className="flex items-center justify-between p-3 border-b border-border/50 bg-secondary/30">
                     <div className="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wider">
-                      <Briefcase size={14} />
-                      Job Context
+                      <Briefcase size={14} /> Job Context
                     </div>
-                    {/* Minimal Copy Button */}
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(jobDescription);
@@ -752,29 +754,131 @@ function EditorContent({ resume }: ResumeEditorProps) {
                       />
                     </button>
                   </div>
-
                   <div className="p-3 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent opacity-80 group-hover:opacity-100 transition-opacity">
                     <p className="text-xs text-muted whitespace-pre-wrap leading-relaxed">
                       {jobDescription}
                     </p>
                   </div>
                 </div>
-
-                {/* Analysis Result HTML - STYLED WITH YOUR CODE */}
                 <div
                   className="text-sm text-muted leading-relaxed [&_h4]:font-bold [&_h4]:text-tertiary [&_h4]:mt-6 [&_h4]:mb-3 [&_h4]:text-base [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_ul]:mb-4 [&_li]:pl-1 [&_strong]:font-semibold [&_strong]:text-primary"
                   dangerouslySetInnerHTML={{ __html: analysisResult || "" }}
                 />
               </div>
             )}
+
+            {/* SETTINGS */}
+            {view === "settings" && (
+              <div className="flex-1 p-6 animate-in fade-in zoom-in-95 duration-300">
+                <div className="bg-whitecolor dark:bg-background border border-border rounded-xl p-6 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                      <Key size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-tertiary">
+                        API Configuration
+                      </h3>
+                      <p className="text-xs text-muted">
+                        Manage your AI model connection.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-tertiary flex items-center gap-2">
+                        Groq API Key
+                        <span className="text-[10px] font-normal text-muted bg-secondary px-1.5 py-0.5 rounded">
+                          Stored Locally
+                        </span>
+                      </label>
+                      <ApiKeyInput
+                        value={apiKey}
+                        onChange={(val) => handleSaveKey(val)}
+                      />
+
+                      <p className="text-[10px] text-muted leading-relaxed">
+                        <AlertCircle
+                          size={10}
+                          className="inline mr-1 mb-0.5 text-primary"
+                        />
+                        Your key is stored securely in your browser's local
+                        storage. It is never saved to our database.
+                      </p>
+                    </div>
+                    {apiKey && (
+                      // UPDATED REMOVE KEY BUTTON - Opens Dialog
+                      <button
+                        onClick={() =>
+                          setDialog({ isOpen: true, type: "remove_key" })
+                        }
+                        className="w-full py-2 flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-xs font-medium transition-all"
+                      >
+                        <Trash2 size={14} /> Remove Key
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      <ApiKeyModal
+        isOpen={showApiKeyModal}
+        initialKey={apiKey}
+        isSystemError={isSystemError}
+        onClose={() => setShowApiKeyModal(false)}
+        onSave={(newKey) => {
+          handleSaveKey(newKey); // Save to state localstorage
+          handleRunAnalysis(newKey);
+        }}
+      />
+
+      {/* ---------------- CUSTOM CONFIRM DIALOG ---------------- */}
+      {dialog.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-whitecolor dark:bg-background border border-border rounded-xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200 scale-100">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full">
+                <AlertTriangle size={32} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-tertiary">
+                  {dialog.type === "remove_key"
+                    ? "Remove API Key?"
+                    : "Delete Analysis?"}
+                </h3>
+                <p className="text-sm text-muted mt-2">
+                  {dialog.type === "remove_key"
+                    ? "You will need to re-enter your key to use AI features again. This cannot be undone."
+                    : "This analysis report will be permanently deleted from your history."}
+                </p>
+              </div>
+              <div className="flex gap-3 w-full mt-2">
+                <button
+                  onClick={() => setDialog({ isOpen: false, type: null })}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-tertiary bg-secondary hover:bg-secondary/80 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={executeConfirmation}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-lg shadow-red-500/20"
+                >
+                  {dialog.type === "remove_key" ? "Remove" : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// 4. Wrap in Suspense AND ResumeProvider (This fixes the error)
+// 4. Wrap in Suspense AND ResumeProvider
 export default function ResumeEditor(props: ResumeEditorProps) {
   return (
     <Suspense

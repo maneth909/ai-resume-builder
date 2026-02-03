@@ -3,11 +3,50 @@
 import { Resume } from "@/types/resume";
 import Groq from "groq-sdk";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+// ==============================
+// ⚙️ API STRATEGY CONFIGURATION
+// ==============================
+// "USER"   -> Forces users to provide their own key
+// "SYSTEM" -> Uses YOUR env key only
+// "HYBRID" -> Tries User key first. If missing, falls back to the env key.
+const API_CONFIG = {
+  MODE: "USER" as "USER" | "SYSTEM" | "HYBRID",
+};
 
-// 1. Helper to strip unnecessary data (Saves tokens & confusion)
+export async function getAiMode() {
+  return API_CONFIG.MODE;
+}
+
+// Helper: Logic to pick the correct key based on strategy
+function getEffectiveApiKey(userProvidedKey?: string): string {
+  const systemKey = process.env.GROQ_API_KEY;
+
+  switch (API_CONFIG.MODE) {
+    case "USER":
+      if (!userProvidedKey?.trim()) {
+        throw new Error(
+          "Creation failed: Please add your Groq API Key in Settings.",
+        );
+      }
+      return userProvidedKey;
+
+    case "SYSTEM":
+      if (!systemKey) {
+        throw new Error("System Error: Server API key is not configured.");
+      }
+      return systemKey;
+
+    case "HYBRID":
+    default:
+      // 1. Try User Key
+      if (userProvidedKey?.trim()) return userProvidedKey;
+      // 2. Fallback to System Key
+      if (systemKey) return systemKey;
+      // 3. Fail
+      throw new Error("No API Key found. Please add one in Settings.");
+  }
+}
+
 function mapResumeData(resume: Resume) {
   return {
     personal: {
@@ -30,10 +69,25 @@ function mapResumeData(resume: Resume) {
   };
 }
 
-// 2. Main Action
-export async function analyzeResume(resume: Resume, jobDescription?: string) {
+export async function analyzeResume(
+  resume: Resume,
+  jobDescription?: string,
+  userApiKey?: string,
+) {
   if (!resume) throw new Error("No resume data provided");
 
+  // 1. RESOLVE API KEY (Based on Config)
+  let apiKey: string;
+  try {
+    apiKey = getEffectiveApiKey(userApiKey);
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+
+  // 2. INIT CLIENT (Must happen inside function for dynamic keys)
+  const groq = new Groq({ apiKey });
+
+  // 3. PREPARE DATA
   const cleanData = mapResumeData(resume);
   const resumeContext = JSON.stringify(cleanData, null, 2);
 
@@ -81,8 +135,7 @@ OUTPUT FORMAT RULES:
 - Return RAW HTML only.
 - Do NOT use Markdown, code blocks, or backticks.
 - Do NOT include inline styles, <style>, <script>, or external links.
-- "Critical Fixes" and "Missing Keywords" MUST be <ul> lists. Do NOT use <p> paragraphs for these sections.** 
-- Use semantic HTML only: <h4>, <p>, <ul>, <li>, <strong>.
+- "Critical Fixes" and "Missing Keywords" MUST be <ul> lists. Do NOT use <p> paragraphs for these sections.** - Use semantic HTML only: <h4>, <p>, <ul>, <li>, <strong>.
 - Emojis are allowed ONLY inside <h4> tags.
 
 
@@ -123,13 +176,13 @@ FINAL ENFORCEMENT:
 VALIDATION:
 - If any section is not wrapped in proper HTML tags, the response is INVALID.
 - Do not return explanatory text, warnings, or apologies.
-
 `;
 
   const userMessage = jobDescription
     ? `RESUME DATA:\n${resumeContext}\n\nTARGET JOB DESCRIPTION:\n${jobDescription}`
     : `RESUME DATA:\n${resumeContext}`;
 
+  // 4. CALL AI
   try {
     const chatCompletion = await groq.chat.completions.create({
       messages: [
@@ -137,7 +190,6 @@ VALIDATION:
         { role: "user", content: userMessage },
       ],
       model: "llama-3.3-70b-versatile",
-
       temperature: 0.2,
       max_tokens: 1024,
     });
@@ -146,8 +198,28 @@ VALIDATION:
       chatCompletion.choices[0]?.message?.content ||
       "<p>Analysis failed to generate.</p>"
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Groq AI Error:", error);
-    throw new Error("Failed to analyze resume.");
+
+    // 5. GRACEFUL ERROR HANDLING
+    if (error?.status === 401) {
+      // If SYSTEM mode fails, show specific System Error message
+      if (API_CONFIG.MODE === "SYSTEM") {
+        throw new Error(
+          "System Error: AI model is not working right now. Please contact support.",
+        );
+      }
+
+      // If USER mode fails, ask them to check their key
+      throw new Error(
+        "Invalid API Key. Please check your key in Settings and try again.",
+      );
+    }
+
+    if (error?.status === 429) {
+      throw new Error("AI Service is busy. Please try again in a minute.");
+    }
+
+    throw new Error("Failed to analyze resume. Please try again.");
   }
 }
