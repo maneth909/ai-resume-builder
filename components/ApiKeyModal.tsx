@@ -30,12 +30,12 @@ export default function ApiKeyModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-whitecolor dark:bg-background border border-border rounded-xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
+      <div className="bg-background border border-border rounded-xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
         {/* CONDITIONAL RENDERING*/}
         {isSystemError ? (
           // --- SYSTEM ERROR VIEW (No Input) ---
           <div className="flex flex-col items-center text-center space-y-4">
-            <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full">
+            <div className="p-3 bg-error/15 dark:bg-error/15 text-error rounded-full">
               <ShieldAlert size={32} />
             </div>
             <div>
@@ -49,7 +49,7 @@ export default function ApiKeyModal({
             </div>
             <button
               onClick={onClose}
-              className="w-full px-4 py-2 text-sm font-medium text-whitecolor bg-tertiary hover:opacity-90 rounded-lg transition-colors mt-2"
+              className="w-full px-4 py-2 text-sm font-medium text-tertiary bg-secondary hover:opacity-90 rounded-lg transition-colors mt-2"
             >
               Close
             </button>
@@ -59,7 +59,7 @@ export default function ApiKeyModal({
           <>
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-lg">
+                <div className="p-2 bg-error/15 dark:bg-error/15 text-error rounded-lg">
                   <AlertTriangle size={20} />
                 </div>
                 <div>

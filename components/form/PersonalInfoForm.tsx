@@ -17,7 +17,7 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
   const [formData, setFormData] = useState<Partial<PersonalInfo>>(
     initialData || {
       full_name: "",
-      role: "", // 1. Initialize new field
+      role: "",
       email: "",
       phone: "",
       location: "",
@@ -84,7 +84,8 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
 
   const getInputStyles = (fieldName: keyof PersonalInfo) => {
     const hasError = !!errors[fieldName];
-    return `w-full px-3 py-2 bg-transparent border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
+    // CHANGE IS HERE: Changed 'bg-transparent' to 'bg-inputboxbg'
+    return `w-full px-3 py-2 bg-inputboxbg border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
       hasError
         ? "border-error focus:ring-error"
         : "border-border focus:ring-primary focus:border-transparent"
@@ -114,7 +115,7 @@ export default function PersonalInfoForm({ resumeId, initialData }: Props) {
           )}
         </div>
 
-        {/* 2. New Role Field */}
+        {/* Role Field */}
         <div>
           <label className={labelStyles}>Job Title / Role</label>
           <input

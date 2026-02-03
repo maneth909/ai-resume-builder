@@ -55,7 +55,7 @@ export default function EducationForm({ resumeId, initialData }: Props) {
         setIsSaving(false);
       }
     },
-    2000
+    2000,
   );
 
   const handleCreate = async () => {
@@ -123,7 +123,7 @@ export default function EducationForm({ resumeId, initialData }: Props) {
 
     // 3. Update Preview
     const updatedList = resumeData.education.map((item) =>
-      item.id === currentId ? { ...item, ...newData } : item
+      item.id === currentId ? { ...item, ...newData } : item,
     );
     updateResumeData("education", updatedList as Education[]);
 
@@ -139,7 +139,7 @@ export default function EducationForm({ resumeId, initialData }: Props) {
     try {
       await deleteEducation(resumeId, id);
       const filteredList = resumeData.education.filter(
-        (item) => item.id !== id
+        (item) => item.id !== id,
       );
       updateResumeData("education", filteredList);
 
@@ -154,7 +154,7 @@ export default function EducationForm({ resumeId, initialData }: Props) {
 
   const getInputStyles = (fieldName: keyof Education) => {
     const hasError = !!errors[fieldName];
-    return `w-full px-3 py-2 bg-transparent border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
+    return `w-full px-3 py-2 bg-inputboxbg border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
       hasError
         ? "border-error focus:ring-error"
         : "border-border focus:ring-primary focus:border-transparent"
@@ -327,7 +327,7 @@ export default function EducationForm({ resumeId, initialData }: Props) {
                 key={item.id}
                 onClick={() => handleEdit(item)}
                 // Dynamic border styling based on validity
-                className={`group p-4 border rounded-lg bg-whitecolor dark:bg-secondary/20 transition-all cursor-pointer relative ${
+                className={`group p-4 border rounded-lg bg-inputboxbg transition-all cursor-pointer relative ${
                   isInvalid
                     ? "border-error/50 hover:border-error bg-error/5"
                     : "border-border hover:border-primary/50"
@@ -362,8 +362,8 @@ export default function EducationForm({ resumeId, initialData }: Props) {
                       {item.is_current
                         ? " Present"
                         : item.end_date
-                        ? format(new Date(item.end_date), " MMM yyyy")
-                        : ""}
+                          ? format(new Date(item.end_date), " MMM yyyy")
+                          : ""}
                     </p>
                   </div>
 

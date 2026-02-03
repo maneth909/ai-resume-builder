@@ -56,7 +56,7 @@ export default function WorkExperienceForm({ resumeId, initialData }: Props) {
         setIsSaving(false);
       }
     },
-    2000
+    2000,
   );
 
   const handleCreate = async () => {
@@ -108,7 +108,7 @@ export default function WorkExperienceForm({ resumeId, initialData }: Props) {
 
   const handleChange = (
     field: keyof WorkExperience,
-    value: string | boolean
+    value: string | boolean,
   ) => {
     if (!currentId) return;
 
@@ -126,7 +126,7 @@ export default function WorkExperienceForm({ resumeId, initialData }: Props) {
     setFormData(newData);
 
     const updatedList = resumeData.work_experience.map((item) =>
-      item.id === currentId ? { ...item, ...newData } : item
+      item.id === currentId ? { ...item, ...newData } : item,
     );
     updateResumeData("work_experience", updatedList as WorkExperience[]);
 
@@ -141,7 +141,7 @@ export default function WorkExperienceForm({ resumeId, initialData }: Props) {
     try {
       await deleteWorkExperience(resumeId, id);
       const filteredList = resumeData.work_experience.filter(
-        (item) => item.id !== id
+        (item) => item.id !== id,
       );
       updateResumeData("work_experience", filteredList);
 
@@ -156,7 +156,7 @@ export default function WorkExperienceForm({ resumeId, initialData }: Props) {
 
   const getInputStyles = (fieldName: keyof WorkExperience) => {
     const hasError = !!errors[fieldName];
-    return `w-full px-3 py-2 bg-transparent border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
+    return `w-full px-3 py-2 bg-inputboxbg border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
       hasError
         ? "border-error focus:ring-error"
         : "border-border focus:ring-primary focus:border-transparent"
@@ -325,7 +325,7 @@ export default function WorkExperienceForm({ resumeId, initialData }: Props) {
                 key={item.id}
                 onClick={() => handleEdit(item)}
                 // 3. CONDITIONAL BORDER STYLING
-                className={`group p-4 border rounded-lg bg-whitecolor dark:bg-secondary/20 transition-all cursor-pointer relative ${
+                className={`group p-4 border rounded-lg bg-inputboxbg transition-all cursor-pointer relative ${
                   isInvalid
                     ? "border-error/50 hover:border-error bg-error/5" // Invalid styles
                     : "border-border hover:border-primary/50" // Valid styles
@@ -360,8 +360,8 @@ export default function WorkExperienceForm({ resumeId, initialData }: Props) {
                       {item.is_current
                         ? " Present"
                         : item.end_date
-                        ? format(new Date(item.end_date), " MMM yyyy")
-                        : ""}
+                          ? format(new Date(item.end_date), " MMM yyyy")
+                          : ""}
                     </p>
                   </div>
 

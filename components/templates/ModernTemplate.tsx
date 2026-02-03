@@ -78,7 +78,7 @@ const ResumePage = ({
 }) => (
   <div
     id={id}
-    className="resume-page w-[210mm] h-[297mm] bg-white shadow-2xl print:shadow-none print:m-0 font-sans text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page"
+    className="resume-page w-[210mm] h-[297mm] shadow-md bg-white print:shadow-none print:m-0 font-sans text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page"
     style={{
       minHeight: "297mm",
       maxHeight: "297mm",

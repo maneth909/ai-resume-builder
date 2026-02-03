@@ -12,6 +12,7 @@
   --color-muted: var(--color-muted);
   --color-border: var(--color-border);
   --color-error: var(--color-error);
+  --color-inputboxbg: var(--color-inputboxbg);
 }
 
 /* DARK MODE SETUP */
@@ -19,27 +20,37 @@
 
 /* COLOR PALETTE */
 :root {
-  --color-blackcolor: #171717;
-  --color-whitecolor: #f8fafc;
+  --color-blackcolor: #09090b;
+  --color-whitecolor: #ffffff;
   --color-primary: #0c36fa;
-  --color-secondary: #ededed;
-  --color-tertiary: #171717;
-  --color-background: #f8f9fa;
-  --color-muted: #64748b;
-  --color-border: #d1d5db;
-  --color-error: #b91c1c;
+  --color-secondary: #f4f4f5;
+  --color-tertiary: #18181b;
+  --color-background: #ffffff;
+  --color-muted: #71717a;
+  --color-border: #e4e4e7;
+  --color-error: #ef4444;
+  --color-inputboxbg: color-mix(
+    in srgb,
+    var(--color-secondary) 15%,
+    transparent
+  );
 }
 
 .dark {
-  --color-blackcolor: #171717;
-  --color-whitecolor: #f8fafc;
-  --color-primary: #3374c3;
-  --color-secondary: #252d36;
-  --color-tertiary: #f8f9fa;
-  --color-background: #1b202a;
-  --color-muted: #94a3b8;
-  --color-border: #374151;
+  --color-background: #2c2c2c;
+  --color-secondary: #18181b;
+  --color-primary: #60a5fa;
+  --color-blackcolor: #fafafa;
+  --color-whitecolor: #ffffff;
+  --color-tertiary: #fafafa;
+  --color-muted: #a1a1aa;
+  --color-border: #38383f;
   --color-error: #f87171;
+  --color-inputboxbg: color-mix(
+    in srgb,
+    var(--color-secondary) 15%,
+    transparent
+  );
 }
 
 /* GLOBAL RESETS */

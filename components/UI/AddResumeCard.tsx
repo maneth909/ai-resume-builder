@@ -26,7 +26,7 @@ export default function AddResumeCard() {
   return (
     <div
       onClick={handleCreate}
-      className={`cursor-pointer group flex flex-col items-center justify-center gap-3 h-full min-h-[280px] w-full bg-white dark:bg-secondary/30 border-2 border-dashed border-border dark:border-border rounded-xl hover:border-primary hover:bg-primary/5 hover:shadow-sm transition-all duration-200 ${
+      className={`cursor-pointer group flex flex-col items-center justify-center gap-3 h-full min-h-[280px] w-full bg-white dark:bg-secondary/40 border-2 border-dashed border-border dark:border-border rounded-xl hover:border-primary hover:bg-primary/5 hover:shadow-sm transition-all duration-200 ${
         isLoading ? "opacity-70 pointer-events-none" : ""
       }`}
     >

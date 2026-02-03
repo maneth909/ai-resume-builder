@@ -53,7 +53,7 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-background dark:bg-background transition-colors duration-300">
       {/* --- top navigation bar --- */}
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/60 dark:bg-secondary/50 backdrop-blur-md">
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* brand */}
           <div className="flex items-center gap-2 font-bold text-xl text-tertiary">
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
             <p className="text-muted mt-1">All your resumes, chilling here.</p>
           </div>
           {resumes && resumes.length > 0 && (
-            <div className="text-sm font-medium text-muted bg-white dark:bg-secondary/20 px-3 py-1 rounded-full border border-border">
+            <div className="text-sm font-medium text-muted bg-white dark:bg-secondary/40 px-3 py-1 rounded-full border border-border">
               {resumes.length} {resumes.length === 1 ? "Resume" : "Resumes"}
             </div>
           )}
@@ -96,7 +96,7 @@ export default async function DashboardPage() {
           {resumes?.map((resume) => (
             <div
               key={resume.id}
-              className="group relative bg-white dark:bg-secondary/10 border border-border rounded-xl shadow-sm hover:shadow-md transition-all hover:border-primary/50 overflow-hidden flex flex-col h-full"
+              className="group relative bg-white dark:bg-secondary/40 border border-border rounded-xl shadow-sm hover:shadow-md transition-all hover:border-primary/50 overflow-hidden flex flex-col h-full"
             >
               {/* Thumbnail area */}
               <Link

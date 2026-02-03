@@ -156,7 +156,7 @@ export default function ExtraCurricularForm({ resumeId, initialData }: Props) {
 
   const getInputStyles = (fieldName: keyof ExtraCurricular) => {
     const hasError = !!errors[fieldName];
-    return `w-full px-3 py-2 bg-transparent border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
+    return `w-full px-3 py-2 bg-inputboxbg border rounded-md text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 transition-all ${
       hasError
         ? "border-error focus:ring-error"
         : "border-border focus:ring-primary focus:border-transparent"
@@ -310,7 +310,7 @@ export default function ExtraCurricularForm({ resumeId, initialData }: Props) {
                 key={item.id}
                 onClick={() => handleEdit(item)}
                 // 3. DYNAMIC BORDER & BG
-                className={`group p-4 border rounded-lg bg-whitecolor dark:bg-secondary/20 transition-all cursor-pointer relative ${
+                className={`group p-4 border rounded-lg bg-inputboxbg transition-all cursor-pointer relative ${
                   isInvalid
                     ? "border-error/50 hover:border-error bg-error/5"
                     : "border-border hover:border-primary/50"

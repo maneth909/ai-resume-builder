@@ -43,7 +43,7 @@ export default function SkillsForm({ resumeId, initialData }: Props) {
       // 3. Swap Temp ID with Real ID in Context
       // This ensures that if the user deletes it right after, we have the correct DB ID
       const currentSkills = resumeData.skills.map((s) =>
-        s.id === tempId ? realSkill : s
+        s.id === tempId ? realSkill : s,
       );
       updateResumeData("skills", currentSkills);
 
@@ -103,7 +103,7 @@ export default function SkillsForm({ resumeId, initialData }: Props) {
           // However, to prevent ID collisions, keeping it disabled during the quick add is safer.
           disabled={loading}
           placeholder="Type a skill (e.g. React, Python) and press Enter..."
-          className="w-full px-4 py-3 bg-transparent border border-border rounded-lg text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all pr-12"
+          className="w-full px-4 py-3 bg-inputboxbg border border-border rounded-lg text-sm text-tertiary placeholder-muted/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all pr-12"
           autoFocus
         />
         <button
@@ -130,7 +130,7 @@ export default function SkillsForm({ resumeId, initialData }: Props) {
             {resumeData.skills.map((skill) => (
               <div
                 key={skill.id}
-                className="group flex items-center gap-2 pl-3 pr-2 py-1.5 bg-whitecolor dark:bg-secondary border border-border rounded-full text-sm text-tertiary hover:border-primary/50 transition-colors shadow-sm animate-in zoom-in-95 duration-200"
+                className="group flex items-center gap-2 pl-3 pr-2 py-1.5 bg-inputboxbg border border-border rounded-full text-sm text-tertiary hover:border-primary/50 transition-colors shadow-sm animate-in zoom-in-95 duration-200"
               >
                 <span>{skill.name}</span>
                 <button

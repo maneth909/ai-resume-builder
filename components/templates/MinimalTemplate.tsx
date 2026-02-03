@@ -67,7 +67,7 @@ const ResumePage = ({
 }) => (
   <div
     id={id}
-    className="w-[210mm] h-[297mm] bg-white shadow-2xl print:shadow-none print:m-0 text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page flex flex-col"
+    className="bg-white w-[210mm] h-[297mm] shadow-md print:shadow-none print:m-0 text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page flex flex-col"
     style={{
       minHeight: "297mm",
       maxHeight: "297mm",
@@ -406,7 +406,7 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
   };
 
   return (
-    <div className="flex flex-col items-center bg-gray-100 print:p-0 print:bg-white print:block">
+    <div className="flex flex-col items-center print:p-0 print:bg-white print:block">
       {/* 1. HIDDEN MEASURER */}
       <div
         ref={measureRef}

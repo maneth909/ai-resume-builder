@@ -70,7 +70,7 @@ const ResumePage = ({
 }) => (
   <div
     id={id}
-    className="resume-page w-[210mm] h-[297mm] bg-white shadow-2xl print:shadow-none print:m-0 font-sans text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page flex flex-col"
+    className="bg-white resume-page w-[210mm] h-[297mm] shadow-md  print:shadow-none print:m-0 font-sans text-sm relative overflow-hidden mb-8 print:mb-0 print:break-after-page flex flex-col"
   >
     {children}
   </div>
@@ -514,7 +514,7 @@ export default function ProfessionalTemplate({ resume }: { resume: Resume }) {
   const rightItems = getRightColumnItems();
 
   return (
-    <div className="flex flex-col items-center bg-gray-100 print:p-0 print:bg-white print:block">
+    <div className="flex flex-col items-center  print:p-0 print:bg-white print:block">
       {/* 1. HIDDEN MEASURER */}
       {/* Ensure layout matches the real page (flex + gap) to calculate heights accurately */}
       <div

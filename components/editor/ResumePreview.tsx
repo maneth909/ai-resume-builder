@@ -97,15 +97,14 @@ export default function ResumePreview({
       )}
 
       {/* --- THE ACTUAL RESUME --- */}
-      {/* IMPORTANT: We explicitly set ID="resume-preview" here.
-          The templates act as inner content, but the printer/downloader 
-          usually targets this ID to capture the page. 
-      */}
+
       <div
         id="resume-preview"
-        className="bg-white w-[210mm] min-h-[297mm] overflow-hidden print:shadow-none print:m-0"
+        className="bg-transparent w-[210mm] min-h-[297mm] pb-4 overflow-hidden print:shadow-none print:m-0"
       >
-        <CurrentTemplate resume={resume} />
+        <div className=" h-full">
+          <CurrentTemplate resume={resume} />
+        </div>
       </div>
     </div>
   );

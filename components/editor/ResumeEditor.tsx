@@ -31,6 +31,7 @@ import ReferenceForm from "@/components/form/ReferenceForm";
 
 import ApiKeyInput from "@/components/ApiKeyInput";
 import ApiKeyModal from "@/components/ApiKeyModal";
+import ThemeToggle from "@/components/ThemeToggle";
 
 import {
   User,
@@ -173,6 +174,15 @@ function EditorContent({ resume }: ResumeEditorProps) {
   const [isSystemError, setIsSystemError] = useState(false);
 
   const [aiMode, setAiMode] = useState("USER");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // Reset to auto to allow shrinking, then set to scrollHeight
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [jobDescription]);
 
   // --- DIALOG STATE (NEW) ---
   const [dialog, setDialog] = useState<{
@@ -279,6 +289,10 @@ function EditorContent({ resume }: ResumeEditorProps) {
 
   return (
     <div className="flex flex-col h-screen bg-whitecolor dark:bg-background text-tertiary transition-colors overflow-hidden relative">
+      {/* This initializes the theme logic but keeps the button hidden */}
+      <div className="hidden" style={{ display: "none" }}>
+        <ThemeToggle />
+      </div>
       {/* ---------------- APP BAR ---------------- */}
       <header className="h-16 border-b border-border flex items-center justify-between px-4 bg-whitecolor dark:bg-background shrink-0 z-20 transition-all">
         <div className="flex items-center gap-4">
@@ -301,6 +315,9 @@ function EditorContent({ resume }: ResumeEditorProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div>
+            <ThemeToggle />
+          </div>
           <button
             onClick={() => handlePrint()}
             disabled={isPrinting}
@@ -333,7 +350,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* NAV */}
         <div
-          className={`bg-whitecolor dark:bg-secondary border-r border-border flex flex-col overflow-y-auto shrink-0 transition-[width] duration-300 ${
+          className={`bg-whitecolor dark:bg-background border-r border-border flex flex-col overflow-y-auto shrink-0 transition-[width] duration-300 ${
             isAIOpen ? "w-20 items-center" : "w-51"
           }`}
         >
@@ -386,7 +403,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
 
         {/* FORM */}
         <div
-          className={`bg-whitecolor dark:bg-secondary border-r border-border overflow-y-auto p-6 scrollbar-hide shrink-0 transition-[width] duration-300 ${
+          className={`bg-whitecolor dark:bg-background border-r border-border overflow-y-auto p-6 scrollbar-hide shrink-0 transition-[width] duration-300 ${
             isAIOpen ? "w-[380px]" : "w-[500px]"
           }`}
         >
@@ -493,9 +510,9 @@ function EditorContent({ resume }: ResumeEditorProps) {
         </div>
 
         {/* PREVIEW */}
-        <div className="flex-1 bg-secondary overflow-y-auto p-8 flex justify-center transition-all duration-300 pt-16 print:p-0 print:bg-white print:overflow-visible">
+        <div className="flex-1 bg-secondary dark:bg-secondary/30 overflow-y-auto p-8 flex justify-center transition-all duration-300 pt-16 print:p-0 print:bg-white print:overflow-visible">
           <div
-            className={`origin-top shadow-2xl transition-all duration-300 print:scale-100 print:shadow-none print:transform-none ${
+            className={`origin-top transition-all duration-300 print:scale-100 print:shadow-none print:transform-none ${
               isAIOpen ? "scale-[0.75] xl:scale-[0.85]" : "scale-[0.85]"
             }`}
           >
@@ -507,12 +524,12 @@ function EditorContent({ resume }: ResumeEditorProps) {
 
         {/* AI SIDEBAR */}
         <div
-          className={`bg-whitecolor dark:bg-secondary border-l border-border transition-[width,opacity] duration-300 ease-in-out overflow-hidden flex flex-col ${
+          className={`bg-background dark:bg-background border-l border-border transition-[width,opacity] duration-300 ease-in-out overflow-hidden flex flex-col ${
             isAIOpen ? "w-[380px] opacity-100" : "w-0 opacity-0"
           }`}
         >
           {/* HEADER */}
-          <div className="h-14 border-b border-border flex items-center justify-center px-4 shrink-0 bg-whitecolor/80 dark:bg-secondary/80 backdrop-blur-md z-20 relative">
+          <div className="h-14 border-b border-border flex items-center justify-center px-4 shrink-0 bg-secondary/30 dark:bg-secondary/15 backdrop-blur-md z-20 relative">
             {/* LEFT ALIGNED BUTTONS (Absolute) */}
             <div className="absolute left-4 flex items-center gap-3">
               {(view === "result" || view === "settings") && (
@@ -566,7 +583,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
           </div>
 
           {/* CONTENT */}
-          <div className="flex-1 overflow-hidden relative bg-background/30 flex flex-col">
+          <div className="flex-1 overflow-hidden relative bg-background/15 flex flex-col">
             {/* HISTORY */}
             {view === "history" && (
               <>
@@ -585,8 +602,9 @@ function EditorContent({ resume }: ResumeEditorProps) {
                       </p>
                     </div>
                     <div className="space-y-4">
-                      <div className="w-full bg-whitecolor dark:bg-background border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm flex flex-col overflow-hidden">
+                      <div className="w-full bg-inputboxbg border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm flex flex-col overflow-hidden">
                         <textarea
+                          ref={textareaRef}
                           value={jobDescription}
                           onChange={(e) => setJobDescription(e.target.value)}
                           onKeyDown={(e) => {
@@ -598,10 +616,10 @@ function EditorContent({ resume }: ResumeEditorProps) {
                           }}
                           placeholder="Paste the full Job Description here..."
                           maxLength={5000}
-                          className="w-full h-40 p-4 text-sm bg-transparent border-none focus:ring-0 resize-none placeholder:text-muted/40 outline-none scrollbar-thin"
+                          className="w-full min-h-20 max-h-100 p-4 text-sm bg-transparent border-none focus:ring-0 resize-none placeholder:text-muted/40 outline-none scrollbar-thin"
                           autoFocus
                         />
-                        <div className="flex items-center justify-between px-3 py-2 border-t border-border/40 bg-secondary/10">
+                        <div className="flex items-center justify-between px-3 py-2 border-t border-border/40 bg-secondary/60 dark:bg-secondary/15">
                           <span className="text-[10px] text-muted font-medium">
                             {jobDescription.length} / 5000 chars
                           </span>
@@ -645,10 +663,10 @@ function EditorContent({ resume }: ResumeEditorProps) {
                             setJobDescription(item.job_description);
                             setView("result");
                           }}
-                          className="group relative w-full text-left p-4 rounded-xl bg-whitecolor dark:bg-background border border-border hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                          className="group relative w-full text-left p-4 rounded-xl bg-secondary/30 dark:bg-secondary/15 border border-border hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
                         >
                           <div className="pr-6">
-                            <div className="font-semibold text-sm text-tertiary truncate mb-1">
+                            <div className="font-semibold text-sm text-tertiary/90 truncate">
                               {item.job_title || "Untitled Analysis"}
                             </div>
                             <span className="text-[10px] text-muted">
@@ -673,7 +691,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
                                 itemId: item.id,
                               });
                             }}
-                            className="absolute top-3 right-3 p-1.5 text-muted hover:text-red-500 hover:bg-red-500/10 rounded-md opacity-0 group-hover:opacity-100 transition-all"
+                            className="absolute top-3 right-3 p-1.5 text-muted hover:text-error hover:bg-error/10 rounded-md opacity-0 group-hover:opacity-100 transition-all"
                             title="Delete Analysis"
                           >
                             <X size={14} />
@@ -681,9 +699,10 @@ function EditorContent({ resume }: ResumeEditorProps) {
                         </div>
                       ))}
                     </div>
-                    <div className="shrink-0 p-4 bg-whitecolor dark:bg-secondary border-t border-border z-10">
-                      <div className="w-full bg-whitecolor dark:bg-background border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm flex flex-col overflow-hidden">
+                    <div className="shrink-0 p-4 bg-background dark:bg-background border-t border-border z-10">
+                      <div className="w-full bg-background border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm flex flex-col overflow-hidden">
                         <textarea
+                          ref={textareaRef}
                           value={jobDescription}
                           onChange={(e) => setJobDescription(e.target.value)}
                           onKeyDown={(e) => {
@@ -695,9 +714,10 @@ function EditorContent({ resume }: ResumeEditorProps) {
                           }}
                           placeholder="Paste new Job Description..."
                           maxLength={5000}
-                          className="w-full h-40 p-3 text-sm bg-transparent border-none focus:ring-0 resize-none placeholder:text-muted/40 outline-none scrollbar-thin"
+                          className="w-full min-h-20 max-h-100 p-3 text-sm bg-inputboxbg border-none focus:ring-0 resize-none placeholder:text-muted/40 outline-none scrollbar-thin overflow-y-auto"
                         />
-                        <div className="flex items-center justify-between px-3 py-2 border-t border-border/40 bg-secondary/10">
+
+                        <div className="flex items-center justify-between px-3 py-2 border-t border-border/40 bg-secondary/30">
                           <span className="text-[10px] text-muted font-medium">
                             {jobDescription.length} / 5000 Chars
                           </span>
@@ -724,8 +744,8 @@ function EditorContent({ resume }: ResumeEditorProps) {
             {/* RESULT */}
             {view === "result" && (
               <div className="flex-1 overflow-y-auto p-4 pb-10 animate-in fade-in slide-in-from-right-4 duration-300">
-                <div className="mb-6 bg-whitecolor dark:bg-background border border-border rounded-xl overflow-hidden shadow-sm group">
-                  <div className="flex items-center justify-between p-3 border-b border-border/50 bg-secondary/30">
+                <div className="mb-6 border border-border rounded-xl overflow-hidden shadow-sm group">
+                  <div className="flex bg-muted/10 items-center justify-between p-3 border-b border-border/50">
                     <div className="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wider">
                       <Briefcase size={14} /> Job Context
                     </div>
@@ -743,7 +763,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
                           }, 2000);
                         }
                       }}
-                      className="text-muted hover:text-primary transition-colors p-1.5 rounded hover:bg-background"
+                      className="text-muted hover:text-primary transition-colors p-1.5 rounded hover:bg-muted/5 dark:hover:bg-muted/10"
                       title="Copy Job Description"
                     >
                       <Copy size={14} id="copy-icon" />
@@ -754,7 +774,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
                       />
                     </button>
                   </div>
-                  <div className="p-3 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent opacity-80 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-secondary/50 dark:bg-muted/20 p-3 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent opacity-80 group-hover:opacity-100 transition-opacity">
                     <p className="text-xs text-muted whitespace-pre-wrap leading-relaxed">
                       {jobDescription}
                     </p>
@@ -770,7 +790,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
             {/* SETTINGS */}
             {view === "settings" && (
               <div className="flex-1 p-6 animate-in fade-in zoom-in-95 duration-300">
-                <div className="bg-whitecolor dark:bg-background border border-border rounded-xl p-6 shadow-sm">
+                <div className="bg-inputboxbg border border-border rounded-xl p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-primary/10 rounded-lg text-primary">
                       <Key size={20} />
@@ -807,12 +827,12 @@ function EditorContent({ resume }: ResumeEditorProps) {
                       </p>
                     </div>
                     {apiKey && (
-                      // UPDATED REMOVE KEY BUTTON - Opens Dialog
+                      // REMOVE KEY BUTTON - Opens Dialog
                       <button
                         onClick={() =>
                           setDialog({ isOpen: true, type: "remove_key" })
                         }
-                        className="w-full py-2 flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-xs font-medium transition-all"
+                        className="w-full py-2 flex items-center justify-center gap-2 text-error hover:bg-error/10 dark:hover:bg-error/10 border border-error/40 dark:border-error/40 rounded-lg text-xs font-medium transition-all"
                       >
                         <Trash2 size={14} /> Remove Key
                       </button>
@@ -839,9 +859,9 @@ function EditorContent({ resume }: ResumeEditorProps) {
       {/* ---------------- CUSTOM CONFIRM DIALOG ---------------- */}
       {dialog.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-whitecolor dark:bg-background border border-border rounded-xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200 scale-100">
+          <div className="bg-background dark:bg-background border border-border rounded-xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200 scale-100">
             <div className="flex flex-col items-center text-center space-y-4">
-              <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full">
+              <div className="p-3 bg-error/15 dark:bg-error/30 text-error rounded-full">
                 <AlertTriangle size={32} />
               </div>
               <div>
@@ -865,7 +885,7 @@ function EditorContent({ resume }: ResumeEditorProps) {
                 </button>
                 <button
                   onClick={executeConfirmation}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-lg shadow-red-500/20"
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-error/90 hover:bg-error rounded-lg transition-colors shadow-lg shadow-error/20"
                 >
                   {dialog.type === "remove_key" ? "Remove" : "Delete"}
                 </button>

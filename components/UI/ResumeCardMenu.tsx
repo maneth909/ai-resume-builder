@@ -264,14 +264,14 @@ export default function ResumeCardMenu({
                 type="button"
                 onClick={() => setShowDeleteModal(false)}
                 disabled={isDeletePending}
-                className="px-5 py-2.5 text-sm font-medium text-muted hover:bg-secondary hover:text-tertiary rounded-lg transition-colors border border-transparent hover:border-border"
+                className="px-5 py-2.5 text-sm font-medium text-muted bg-secondary hover:text-tertiary rounded-lg transition-colors border border-transparent hover:border-border"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={isDeletePending}
-                className="px-5 py-2.5 text-sm font-medium bg-error text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-lg shadow-error/20"
+                className="px-5 py-2.5 text-sm font-medium bg-error/90 text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-lg shadow-error/20"
               >
                 {isDeletePending && (
                   <Loader2 className="animate-spin" size={16} />
