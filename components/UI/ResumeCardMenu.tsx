@@ -10,7 +10,7 @@ import {
   FileText,
   Loader2,
   Copy,
-  AlertTriangle, // Added for warning icon
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -18,26 +18,29 @@ import {
   updateResumeTitle,
   duplicateResume,
 } from "@/actions/resume";
+import ResumeLimitModal from "@/components/modals/ResumeLimitModal"; // Import
 
 interface ResumeCardMenuProps {
   resumeId: string;
   currentTitle: string;
+  resumeCount: number;
 }
 
 export default function ResumeCardMenu({
   resumeId,
   currentTitle,
+  resumeCount,
 }: ResumeCardMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   // --- MODAL STATES ---
   const [showRenameModal, setShowRenameModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false); // NEW STATE
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   const [title, setTitle] = useState(currentTitle);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // --- SEPARATE TRANSITIONS ---
   const [isDeletePending, startDeleteTransition] = useTransition();
   const [isDuplicatePending, startDuplicateTransition] = useTransition();
   const [isRenamePending, startRenameTransition] = useTransition();
@@ -53,13 +56,11 @@ export default function ResumeCardMenu({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 1. Just open the modal
   const handleDeleteClick = () => {
     setIsOpen(false);
     setShowDeleteModal(true);
   };
 
-  // 2. Actual delete logic
   const confirmDelete = async () => {
     startDeleteTransition(async () => {
       await deleteResume(resumeId);
@@ -68,12 +69,25 @@ export default function ResumeCardMenu({
   };
 
   const handleDuplicate = async () => {
+    // 1. Client Check
+    if (resumeCount >= 7) {
+      setIsOpen(false);
+      setShowLimitModal(true);
+      return;
+    }
+
     startDuplicateTransition(async () => {
       try {
         await duplicateResume(resumeId);
         setIsOpen(false);
-      } catch (error) {
-        alert("Failed to duplicate resume");
+      } catch (error: any) {
+        // 2. Server Check Fallback
+        if (error.message && error.message.includes("LIMIT_REACHED")) {
+          setIsOpen(false);
+          setShowLimitModal(true);
+        } else {
+          alert("Failed to duplicate resume");
+        }
       }
     });
   };
@@ -94,7 +108,6 @@ export default function ResumeCardMenu({
 
   return (
     <>
-      {/* --- Trigger button --- */}
       <div className="relative" ref={menuRef}>
         <button
           onClick={(e) => {
@@ -107,10 +120,8 @@ export default function ResumeCardMenu({
           <MoreVertical size={20} />
         </button>
 
-        {/* --- Dropdown menu --- */}
         {isOpen && (
           <div className="absolute bottom-full right-0 px-1 mb-2 w-32 bg-white dark:bg-background rounded-md shadow-xl border border-border py-1 animate-in fade-in zoom-in-95 duration-200 z-30">
-            {/* Edit */}
             <Link
               href={`/resumes/${resumeId}`}
               className="flex items-center w-full rounded-sm px-4 py-2.5 text-sm text-tertiary hover:bg-secondary/50 transition-colors"
@@ -119,7 +130,6 @@ export default function ResumeCardMenu({
               Edit
             </Link>
 
-            {/* Rename Trigger */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -133,7 +143,6 @@ export default function ResumeCardMenu({
               Rename
             </button>
 
-            {/* Duplicate */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -152,7 +161,6 @@ export default function ResumeCardMenu({
 
             <div className="h-px bg-border/50 my-1" />
 
-            {/* Delete Trigger */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -166,6 +174,11 @@ export default function ResumeCardMenu({
           </div>
         )}
       </div>
+
+      <ResumeLimitModal
+        isOpen={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+      />
 
       {/* --- Rename Modal --- */}
       {showRenameModal && (
@@ -231,7 +244,7 @@ export default function ResumeCardMenu({
         </div>
       )}
 
-      {/* --- DELETE CONFIRMATION MODAL --- */}
+      {/* --- Delete Confirmation Modal --- */}
       {showDeleteModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
@@ -258,7 +271,6 @@ export default function ResumeCardMenu({
               </p>
             </div>
 
-            {/* Centered Buttons */}
             <div className="flex justify-center gap-3 px-6 pb-8">
               <button
                 type="button"

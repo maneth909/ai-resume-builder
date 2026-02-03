@@ -3,6 +3,22 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// --- HELPER: Check Limit ---
+async function checkResumeLimit(userId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("resumes")
+    .select("*", { count: "exact", head: true }) // efficient count query
+    .eq("user_id", userId);
+
+  if (error) throw new Error("Failed to check resume limit");
+
+  // LIMIT CONFIGURATION
+  if (count !== null && count >= 7) {
+    throw new Error("LIMIT_REACHED");
+  }
+}
+
 // create new resume
 export async function createResume(title: string) {
   const supabase = await createSupabaseServerClient();
@@ -11,6 +27,9 @@ export async function createResume(title: string) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("User not authenticated");
+
+  // 1. Check Limit
+  await checkResumeLimit(user.id);
 
   const { data, error } = await supabase
     .from("resumes")
@@ -98,7 +117,10 @@ export async function duplicateResume(resumeId: string) {
 
   if (!user) throw new Error("User not authenticated");
 
-  // 1. fetch the original resume with ALL relations
+  // 1. Check Limit
+  await checkResumeLimit(user.id);
+
+  // 2. fetch the original resume with ALL relations
   const { data: original, error: fetchError } = await supabase
     .from("resumes")
     .select(
@@ -123,7 +145,7 @@ export async function duplicateResume(resumeId: string) {
     throw new Error("Failed to fetch original resume");
   }
 
-  // 2. create the new Resume Entry
+  // 3. create the new Resume Entry
   const { data: newResume, error: createError } = await supabase
     .from("resumes")
     .insert({
@@ -136,7 +158,7 @@ export async function duplicateResume(resumeId: string) {
 
   if (createError) throw new Error("Failed to create copy");
 
-  // 3. helper function to clean data (remove IDs) and insert
+  // 4. helper function to clean data (remove IDs) and insert
   const copyTable = async (tableName: string, data: any[] | any) => {
     if (!data) return;
 

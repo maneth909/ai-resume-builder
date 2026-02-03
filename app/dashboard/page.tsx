@@ -50,6 +50,9 @@ export default async function DashboardPage() {
       : resume.personal_info,
   })) as Resume[];
 
+  // --- NEW: Calculate count ---
+  const resumeCount = resumes ? resumes.length : 0;
+
   return (
     <div className="min-h-screen bg-background dark:bg-background transition-colors duration-300">
       {/* --- top navigation bar --- */}
@@ -87,9 +90,9 @@ export default async function DashboardPage() {
 
         {/* --- grid layout --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {/* add new card (always first) */}
+          {/* add new card (always first) - Pass resumeCount */}
           <div className="h-full">
-            <AddResumeCard />
+            <AddResumeCard resumeCount={resumeCount} />
           </div>
 
           {/* Resume list */}
@@ -131,11 +134,12 @@ export default async function DashboardPage() {
                   </div>
                 </Link>
 
-                {/* Right: The Menu Button */}
+                {/* Right: The Menu Button - Pass resumeCount */}
                 <div className="flex-shrink-0 -mt-1">
                   <ResumeCardMenu
                     resumeId={resume.id}
                     currentTitle={resume.title || "Untitled Resume"}
+                    resumeCount={resumeCount}
                   />
                 </div>
               </div>
