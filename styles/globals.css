@@ -95,4 +95,18 @@ body {
     scrollbar-width: thin;
     scrollbar-color: var(--color-border) transparent;
   }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    /* The large shadow covers the yellow default */
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+
+    /* Forces the text to be black (or use var(--color-tertiary) for your theme) */
+    -webkit-text-fill-color: black !important;
+
+    /* This transition trick keeps it stable */
+    transition: background-color 5000s ease-in-out 0s;
+  }
 }

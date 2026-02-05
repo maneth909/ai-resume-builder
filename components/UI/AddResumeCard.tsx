@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
 import { createResume } from "@/actions/resume";
-import ResumeLimitModal from "@/components/modals/ResumeLimitModal"; // Import
+import ResumeLimitModal from "@/components/UI/ResumeLimitModal"; // Import
 
 interface Props {
   resumeCount: number;

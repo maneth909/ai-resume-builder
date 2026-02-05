@@ -18,7 +18,7 @@ import {
   updateResumeTitle,
   duplicateResume,
 } from "@/actions/resume";
-import ResumeLimitModal from "@/components/modals/ResumeLimitModal"; // Import
+import ResumeLimitModal from "@/components/UI/ResumeLimitModal"; // Import
 
 interface ResumeCardMenuProps {
   resumeId: string;
